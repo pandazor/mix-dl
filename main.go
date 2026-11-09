@@ -197,9 +197,14 @@ func run() error {
 	api.Quit = quit
 	api.OpenURL = func(url string) error { return app.Browser.OpenURL(url) }
 	api.Pick = func(kind string) (string, error) {
+		if kind == "backup-export" {
+			return app.Dialog.SaveFile().AttachToWindow(window).AddFilter("Sauvegarde chiffrée", "*.dlmbackup").SetFilename("dl-manager-sites.dlmbackup").CanCreateDirectories(true).PromptForSingleSelection()
+		}
 		d := app.Dialog.OpenFile().AttachToWindow(window)
 		if kind == "directory" {
 			d.CanChooseDirectories(true).CanChooseFiles(false).CanCreateDirectories(true).SetTitle("Choisir un dossier de téléchargement")
+		} else if kind == "backup-import" {
+			d.AddFilter("Sauvegarde chiffrée", "*.dlmbackup").SetTitle("Importer les sites et comptes")
 		} else if kind == "cookies" {
 			d.AddFilter("Cookies Netscape", "*.txt").SetTitle("Importer cookies.txt")
 		} else {

@@ -9,3 +9,5 @@
 *.exe
 *.test
 /node_modules/
+
+*.dlmbackup

@@ -37,26 +37,27 @@ type Settings struct {
 	Sites       map[string]SiteSettings `json:"sites"`
 }
 type Job struct {
-	ProfileMode string  `json:"profileMode"`
-	ID          string  `json:"id"`
-	URL         string  `json:"url"`
-	Site        string  `json:"site"`
-	Destination string  `json:"destination"`
-	Layout      string  `json:"layout"`
-	Filename    string  `json:"filename"`
-	Filters     Filters `json:"filters"`
-	ProfileID   string  `json:"profileId"`
-	Status      string  `json:"status"`
-	Added       string  `json:"added"`
-	Started     string  `json:"started"`
-	Ended       string  `json:"ended"`
-	Error       string  `json:"error"`
-	ExitCode    int     `json:"exitCode"`
-	Bytes       int64   `json:"bytes"`
-	Files       int     `json:"files"`
-	Skipped     int     `json:"skipped"`
-	Current     string  `json:"current"`
-	Order       int64   `json:"order"`
+	DestinationMode string  `json:"destinationMode,omitempty"`
+	ProfileMode     string  `json:"profileMode"`
+	ID              string  `json:"id"`
+	URL             string  `json:"url"`
+	Site            string  `json:"site"`
+	Destination     string  `json:"destination"`
+	Layout          string  `json:"layout"`
+	Filename        string  `json:"filename"`
+	Filters         Filters `json:"filters"`
+	ProfileID       string  `json:"profileId"`
+	Status          string  `json:"status"`
+	Added           string  `json:"added"`
+	Started         string  `json:"started"`
+	Ended           string  `json:"ended"`
+	Error           string  `json:"error"`
+	ExitCode        int     `json:"exitCode"`
+	Bytes           int64   `json:"bytes"`
+	Files           int     `json:"files"`
+	Skipped         int     `json:"skipped"`
+	Current         string  `json:"current"`
+	Order           int64   `json:"order"`
 }
 type Profile struct {
 	ID     string `json:"id"`

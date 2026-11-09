@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 )
 
 type CredentialVault interface {
@@ -22,6 +23,7 @@ type CredentialVault interface {
 }
 
 type API struct {
+	backupMu sync.Mutex
 	Store    *storage.Store
 	Manager  *queue.Manager
 	Vault    CredentialVault
@@ -78,7 +80,7 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			e = err
 			break
 		}
-		reply(w, map[string]any{"state": state, "sites": platform.Sites, "dataDir": a.DataDir, "version": "0.2.0", "platform": runtime.GOOS})
+		reply(w, map[string]any{"state": state, "sites": platform.Sites, "dataDir": a.DataDir, "version": "0.3.0", "platform": runtime.GOOS})
 		return
 	case "GET /api/profile":
 		e = a.profileDetails(w, r)
@@ -109,6 +111,16 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		reply(w, out)
 		return
+	case "POST /api/backup/export":
+		e = a.exportBackup(w, r)
+		if e == nil {
+			return
+		}
+	case "POST /api/backup/import":
+		e = a.importBackup(w, r)
+		if e == nil {
+			return
+		}
 	case "POST /api/settings":
 		var v model.Settings
 		if e = decode(w, r, &v); e == nil {
@@ -197,7 +209,11 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					continue
 				}
 			}
-			j := model.Job{URL: raw, Site: site, Destination: dest, Layout: layout, Filename: filename, Filters: filters, ProfileID: profile, ProfileMode: profileMode}
+			destinationMode := "inherit"
+			if req.Destination != "" {
+				destinationMode = "explicit"
+			}
+			j := model.Job{DestinationMode: destinationMode, URL: raw, Site: site, Destination: dest, Layout: layout, Filename: filename, Filters: filters, ProfileID: profile, ProfileMode: profileMode}
 			if err = a.Manager.Add(j); err != nil {
 				problems = append(problems, err.Error())
 			} else {
@@ -206,6 +222,13 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		reply(w, map[string]any{"added": added, "errors": problems})
 		return
+	case "POST /api/jobs/destinations":
+		var req struct {
+			IDs []string `json:"ids"`
+		}
+		if e = decode(w, r, &req); e == nil {
+			e = a.Manager.RefreshDestinations(req.IDs)
+		}
 	case "POST /api/job/profile":
 		var req struct {
 			ID        string `json:"id"`
@@ -278,7 +301,7 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if e = decode(w, r, &req); e != nil {
 			break
 		}
-		if req.Kind != "directory" && req.Kind != "cookies" && req.Kind != "engine" {
+		if req.Kind != "directory" && req.Kind != "cookies" && req.Kind != "engine" && req.Kind != "backup-export" && req.Kind != "backup-import" {
 			e = errors.New("Type de sélection inconnu")
 			break
 		}

@@ -1,3 +1,51 @@
+# Vérifications de dl-manager 0.3.0
+
+Validation du 9 novembre 2026, Windows x64.
+
+- `go test -count=1 -v ./...` : **46 tests réussis, aucun ignoré**.
+- `go vet ./...` et `GOOS=linux go vet -tags purego ./...` réussis.
+- Tests Linux compilés avec `go test -c -o bin/linux-tests/ -tags purego ./...` ; non exécutés sur Windows.
+
+- Héritage de destination reproduit avant correction : les tâches conservaient
+  la destination initiale. Les tests vérifient maintenant site/global au premier
+  départ, priorité du dossier explicite, prévisualisation effective et reprise
+  dans le dossier initial.
+- Actualisation explicite des anciennes tâches jamais démarrées, validation
+  de l'ensemble de la sélection avant écriture, refus des tâches commencées.
+- Sauvegarde chiffrée : aléa, aller-retour, 16 caractères Unicode minimum,
+  phrase incorrecte, altération de l'en-tête et du contenu, bornes de taille.
+- Export/import : fichier existant conservé, validation intégrale avant écriture,
+  rejet des IDs malformés, des méthodes/sites inconnus, des références invalides ;
+  rollback du coffre et transaction SQLite ; conservation de la configuration
+  existante, réaffectation des comptes par défaut, chemins étrangers réinitialisés.
+- Conservation des cookies, tokens et secrets OAuth. Import testé dans le vrai
+  coffre Windows DPAPI avec données fictives ; absence du secret en clair sur disque.
+- Interface testée dans Chrome headless, avec un profil et une base séparés :
+  réglage global changé après ajout, détails actualisés, bouton de réapplication,
+  export chiffré, refus d'une phrase courte ou incorrecte, import ajoutant un compte,
+  champs secrets effacés à la fermeture ; aucune erreur JavaScript.
+- Revue indépendante ciblée des extraits de code de chiffrement, import et
+  destinations : aucun blocage relevé. Le premier accès aux fichiers du réviseur
+  a échoué ; cette revue ne constitue pas une exécution indépendante des tests.
+- Archives portables : sommes des moteurs contrôlées, ZIP vérifiés et TAR.GZ
+  relu pour contrôler les SHA-256 et les modes exécutables Linux.
+- TypeScript et compilations Windows/Linux vérifiés. Aucun changement de l'instance
+  utilisateur en cours, de son coffre ou de ses téléchargements.
+
+## Limites 0.3.0
+
+Le contrôle UI utilise le mode aperçu HTTP local. Les nouveaux sélecteurs de
+fichiers natifs et le bureau/trousseau Linux doivent encore être essayés dans
+leurs sessions graphiques normales. Les tests de chiffrement portable s'exécutent
+sur Windows ; la compilation/vet Linux ne vaut pas exécution Linux.
+Les formats expirés ou refusés par un site restent dépendants de ce site.
+
+Les fichiers d'une tâche déjà commencée ne sont pas déplacés. Les anciennes tâches
+sans provenance nécessitent l'action explicite d'actualisation. Les archives moteur
+et les téléchargements ne sont pas transportés par la sauvegarde de comptes.
+
+---
+
 # Vérifications de dl-manager 0.2.0
 
 Validation du 9 novembre 2026, hôte Windows x64.
