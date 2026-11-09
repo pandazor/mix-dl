@@ -13,7 +13,7 @@ VERSION = '0.5.0'
 ENGINES = ('gallery-dl', 'yt-dlp', 'ffmpeg', 'ffprobe', 'deno')
 DOCS = ('README.md', 'VALIDATION.md', 'THIRD_PARTY.md', 'LICENSE')
 USER_DOCS = ('docs/guide.fr.md', 'docs/README.en.md', 'docs/README.es.md',
-             'docs/README.zh-CN.md', 'docs/README.ja.md', 'docs/donations.md',
+             'docs/README.zh-CN.md', 'docs/README.ja.md',
              'docs/technical.fr.md', 'docs/images/downloads.png', 'docs/images/accounts.png')
 
 
@@ -55,7 +55,8 @@ def portable_entries(platform):
 
 def source_entries(platforms):
     names = ['main.go', 'main_windows.go', 'main_linux.go', 'go.mod', 'go.sum', 'package.json',
-             'build.ps1', 'build-linux.ps1', 'build-linux.sh', 'test.ps1', '.gitignore', *DOCS, *USER_DOCS,
+             'build.ps1', 'build-linux.ps1', 'build-linux.sh', 'test.ps1', '.gitignore',
+             '.github/FUNDING.yml', *DOCS, *USER_DOCS,
              'docs/design.md', 'docs/progress.md', 'docs/linux-implementation-report.md',
              'docs/superpowers/plans/2026-11-08-dl-manager.md',
              'docs/superpowers/plans/2026-11-09-profiles-linux.md',

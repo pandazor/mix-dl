@@ -4,6 +4,8 @@
 
 [Français](README.md) · [English](docs/README.en.md) · [Español](docs/README.es.md) · [简体中文](docs/README.zh-CN.md) · [日本語](docs/README.ja.md)
 
+❤️ [Soutenir le projet](https://revolut.me/ludwigccae)
+
 Une interface pour gallery-dl et yt-dlp : collez vos liens, choisissez les images ou vidéos, puis lancez la file. Les moteurs et leurs dépendances sont fournis dans les paquets.
 
 ## Télécharger et démarrer
@@ -105,6 +107,6 @@ Les comptes sont protégés par DPAPI sous Windows, et par une clé du trousseau
 
 ## Participer
 
-Les retours de tests et [signalements de problèmes](https://github.com/pandazor/mix-dl/issues) sont bienvenus. Le lien de don n’est pas encore configuré ; [instructions pour le mainteneur](docs/donations.md).
+Les retours de tests et [signalements de problèmes](https://github.com/pandazor/mix-dl/issues) sont bienvenus. Si l’outil vous est utile, vous pouvez [faire un don via Revolut](https://revolut.me/ludwigccae). Le montant est libre et le soutien entièrement facultatif.
 
 Code sous **AGPL-3.0-only** : [licence](LICENSE). Les moteurs gardent leurs licences propres : [notices](THIRD_PARTY.md). [Validation et limites](VALIDATION.md) et [notes techniques / compilation](docs/technical.fr.md) sont conservées en français. Les traductions peuvent être améliorées par des locuteurs natifs.

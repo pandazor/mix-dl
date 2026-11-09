@@ -4,6 +4,8 @@
 
 [Français](guide.fr.md) · [English](README.en.md) · [Español](README.es.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
+❤️ [Support the project](https://revolut.me/ludwigccae)
+
 A desktop interface for gallery-dl and yt-dlp: paste links, choose images or videos, and start the queue. Download engines and their dependencies come with the packages.
 
 ## Download and start
@@ -105,6 +107,6 @@ Windows accounts use DPAPI protection; Linux uses a key kept in Secret Service. 
 
 ## Contribute
 
-Test reports and [issue reports](https://github.com/pandazor/mix-dl/issues) are welcome. A donation link is not configured yet.
+Test reports and [issue reports](https://github.com/pandazor/mix-dl/issues) are welcome. If you find the app useful, you can [donate via Revolut](https://revolut.me/ludwigccae). Choose any amount; support is entirely optional.
 
 The code uses **AGPL-3.0-only**: [license](../LICENSE). Bundled engines keep their own licenses: [notices](../THIRD_PARTY.md). [Validation and limits](../VALIDATION.md) and [technical/build notes](technical.fr.md) remain in French. Native speakers are welcome to improve the translations.
