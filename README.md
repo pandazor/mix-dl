@@ -1,4 +1,4 @@
-# dl-manager 0.3.1 — Windows et Linux x64
+# dl-manager 0.3.2 — Windows et Linux x64
 
 Gestionnaire personnel de téléchargements utilisant gallery-dl et yt-dlp.
 Le paquet inclut les moteurs : aucune installation de Python, Go, FFmpeg ou Deno
@@ -27,7 +27,7 @@ Le TAR.GZ Linux inclut aussi les cinq moteurs. Sur Debian/Ubuntu avec interface 
 ```sh
 sudo apt install libgtk-4-1 libwebkitgtk-6.0-4 libsecret-tools
 # Décompresser dans un dossier appartenant à votre utilisateur :
-tar -xzf dl-manager-0.3.1-linux-x64.tar.gz
+tar -xzf dl-manager-0.3.2-linux-x64.tar.gz
 cd dl-manager
 ./dl-manager
 ```
@@ -104,6 +104,25 @@ au site. Si le chiffrement échoue, le compte n'est pas enregistré en clair.
 - À chaque démarrage, **aucun téléchargement ne part automatiquement**.
   En revanche, une file déjà démarrée traite les liens que vous lui ajoutez.
 
+### Erreurs de téléchargement et quota Tumblr
+
+Les tâches en erreur restent visibles dans **Téléchargements**, ainsi que dans
+**Historique**. **Détails** affiche le message et le journal du moteur.
+Le bouton **↻ Remettre en attente**, puis **Démarrer / reprendre** si la file est
+arrêtée, relance une tâche existante ; il n'est pas nécessaire de recoller son URL.
+Une file déjà active peut reprendre la tâche dès sa remise en attente.
+
+Pour Tumblr, saisir `access-token` dans **Token / API Key** et
+`access-token-secret` dans **OAuth Token Secret**. L'autorisation OAuth peut réussir
+alors que le quota de la clé d'application partagée de gallery-dl est épuisé.
+Dans ce cas, attendre l'heure de remise à zéro annoncée dans le journal avant
+une nouvelle tentative. Cette heure est affichée telle que fournie par le moteur.
+Renouveler les tokens ne réinitialise pas ce quota, partagé avec d'autres utilisateurs.
+Les identifiants d'une application Tumblr personnelle (consumer key et secret)
+ne sont pas encore pris en charge par dl-manager.
+
+Référence : https://github.com/mikf/gallery-dl/issues/5664
+
 ## Quota de volume
 
 Dans **Paramètres**, renseigner la limite en Go (0 = désactivée). Le compteur
@@ -157,7 +176,7 @@ sommes publiées. `scripts/package.py --platform all` crée les ZIP et le TAR.GZ
 `build-linux.ps1` permet la compilation Linux depuis Windows ; `sh build-linux.sh`
 compile sous Linux, et `CGO_ENABLED=0 go test -tags purego ./...` y lance les tests.
 Le test d'intégration réel requiert `tools/gallery-dl.exe`.
-`npm run test:ui` vérifie le parcours des destinations et sauvegardes dans Chrome
+`npm run test:ui` vérifie le parcours des destinations, sauvegardes et erreurs dans Chrome
 avec un profil temporaire et le binaire compilé. `DLM_TEST_BROWSER` permet de choisir
 le navigateur et `DLM_TEST_BINARY` un autre binaire. Sous Linux, installer le navigateur
 Playwright (`npx playwright install chromium`) ou renseigner `DLM_TEST_BROWSER`.
@@ -173,9 +192,9 @@ https://codeberg.org/mikf/gallery-dl — https://gdl-org.github.io/docs/
 https://github.com/yt-dlp/yt-dlp — https://github.com/yt-dlp/FFmpeg-Builds
 https://github.com/denoland/deno
 
-## Mise à jour depuis 0.1.0, 0.2.0 ou 0.3.0
+## Mise à jour depuis 0.1.0 à 0.3.1
 
-Quitter l'ancienne application et sauvegarder son dossier `data`. Extraire 0.3.1
+Quitter l'ancienne application et sauvegarder son dossier `data`. Extraire 0.3.2
 puis conserver/copier ce dossier `data` à côté du nouvel exécutable Windows ; les
 comptes DPAPI existants restent lisibles dans la même session Windows. Le paquet
 ne contient aucun `data` et ne remplace pas les téléchargements.
