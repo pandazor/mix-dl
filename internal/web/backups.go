@@ -22,9 +22,10 @@ type backupAccount struct {
 	Credentials downloader.Credentials `json:"credentials"`
 }
 type backupDocument struct {
-	Version  int                           `json:"version"`
-	Sites    map[string]model.SiteSettings `json:"sites"`
-	Accounts []backupAccount               `json:"accounts"`
+	CustomSites map[string]model.CustomSite   `json:"customSites,omitempty"`
+	Version     int                           `json:"version"`
+	Sites       map[string]model.SiteSettings `json:"sites"`
+	Accounts    []backupAccount               `json:"accounts"`
 }
 
 var backupID = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,80}$`)
@@ -32,17 +33,19 @@ var invalidBackup = errors.New("Contenu de sauvegarde invalide ou version non pr
 
 // validateBackup rejects all malformed entries before the vault is modified.
 func validateBackup(doc *backupDocument) (int, error) {
-	if doc.Version != 1 || len(doc.Accounts) > 1000 || len(doc.Sites) > len(platform.Sites) {
+	if (doc.Version != 1 && doc.Version != 2) || (doc.Version == 1 && len(doc.CustomSites) > 0) || model.ValidateCustomSites(doc.CustomSites) != nil || len(doc.Accounts) > 1000 || len(doc.Sites) > len(platform.Sites)+len(doc.CustomSites) {
 		return 0, invalidBackup
 	}
+	definition := model.DefaultSettings()
+	definition.CustomSites = doc.CustomSites
 	profiles := map[string]model.Profile{}
 	for _, entry := range doc.Accounts {
 		p, c := entry.Profile, entry.Credentials
-		if !backupID.MatchString(p.ID) || profiles[p.ID].ID != "" || strings.TrimSpace(p.Name) == "" || len(p.Name) > 100 || platform.Get(p.Site).ID != p.Site || p.Method != c.Method {
+		if !backupID.MatchString(p.ID) || profiles[p.ID].ID != "" || strings.TrimSpace(p.Name) == "" || len(p.Name) > 100 || platform.GetForSettings(p.Site, definition).ID != p.Site || p.Method != c.Method {
 			return 0, invalidBackup
 		}
 		methodOK := false
-		for _, m := range platform.Get(p.Site).Methods {
+		for _, m := range platform.GetForSettings(p.Site, definition).Methods {
 			if m == p.Method {
 				methodOK = true
 			}
@@ -54,7 +57,13 @@ func validateBackup(doc *backupDocument) (int, error) {
 			return 0, invalidBackup
 		}
 		if c.Method == "cookies" {
-			if auth.ValidateCookies(c.Cookies, p.Site) != nil {
+			var err error
+			if custom, ok := doc.CustomSites[p.Site]; ok {
+				err = auth.ValidateCookiesForDomain(c.Cookies, custom.Domain)
+			} else {
+				err = auth.ValidateCookies(c.Cookies, p.Site)
+			}
+			if err != nil {
 				return 0, invalidBackup
 			}
 		} else {
@@ -80,8 +89,9 @@ func validateBackup(doc *backupDocument) (int, error) {
 	reset := 0
 	cfg := model.DefaultSettings()
 	cfg.Sites = doc.Sites
+	cfg.CustomSites = doc.CustomSites
 	for id, site := range doc.Sites {
-		if platform.Get(id).ID != id || len(site.Destination) > 8192 || strings.ContainsRune(site.Destination, 0) {
+		if platform.GetForSettings(id, definition).ID != id || len(site.Destination) > 8192 || strings.ContainsRune(site.Destination, 0) {
 			return 0, invalidBackup
 		}
 		if site.ProfileID != "" {
@@ -132,7 +142,10 @@ func (a *API) exportBackup(w http.ResponseWriter, r *http.Request) error {
 		if e != nil {
 			return errors.New("Impossible de lire les réglages")
 		}
-		doc = backupDocument{Version: 1, Sites: state.Settings.Sites, Accounts: []backupAccount{}}
+		doc = backupDocument{Version: 1, Sites: state.Settings.Sites, Accounts: []backupAccount{}, CustomSites: state.Settings.CustomSites}
+		if len(doc.CustomSites) > 0 {
+			doc.Version = 2
+		}
 		total := 0
 		for _, p := range state.Profiles {
 			raw, e := a.Vault.Load(p.ID)
@@ -242,6 +255,36 @@ func (a *API) importBackup(w http.ResponseWriter, r *http.Request) error {
 		if e != nil {
 			return errors.New("Impossible de lire les réglages")
 		}
+		siteRemap := map[string]string{}
+		preserveCustom := map[string]bool{}
+		if state.Settings.CustomSites == nil {
+			state.Settings.CustomSites = map[string]model.CustomSite{}
+		}
+		for old, incoming := range doc.CustomSites {
+			target := ""
+			for id, current := range state.Settings.CustomSites {
+				if current.Domain == incoming.Domain {
+					target = id
+					preserveCustom[id] = true
+					break
+				}
+			}
+			if target == "" {
+				for {
+					target = "custom_" + model.ID()
+					if _, exists := state.Settings.CustomSites[target]; !exists {
+						break
+					}
+				}
+				state.Settings.CustomSites[target] = incoming
+			} else if req.ReplaceSites {
+				state.Settings.CustomSites[target] = incoming
+			}
+			siteRemap[old] = target
+		}
+		if e = state.Settings.Validate(); e != nil {
+			return invalidBackup
+		}
 		remap := map[string]string{}
 		profiles := []model.Profile{}
 		written := []string{}
@@ -261,6 +304,9 @@ func (a *API) importBackup(w http.ResponseWriter, r *http.Request) error {
 		}()
 		for _, entry := range doc.Accounts {
 			p := entry.Profile
+			if target, ok := siteRemap[p.Site]; ok {
+				p.Site = target
+			}
 			old := p.ID
 			for {
 				p.ID = model.ID()
@@ -291,7 +337,10 @@ func (a *API) importBackup(w http.ResponseWriter, r *http.Request) error {
 			profiles = append(profiles, p)
 		}
 		for id, site := range doc.Sites {
-			if _, exists := state.Settings.Sites[id]; exists && !req.ReplaceSites {
+			if target, ok := siteRemap[id]; ok {
+				id = target
+			}
+			if _, exists := state.Settings.Sites[id]; (exists || preserveCustom[id]) && !req.ReplaceSites {
 				continue
 			}
 			if site.ProfileID != "" {

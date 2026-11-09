@@ -119,7 +119,7 @@ func run() error {
 	}
 	entries, _ := os.ReadDir(tempRoot)
 	for _, entry := range entries {
-		if entry.IsDir() && strings.HasPrefix(entry.Name(), "run-") {
+		if entry.IsDir() && (strings.HasPrefix(entry.Name(), "run-") || strings.HasPrefix(entry.Name(), "oauth-")) {
 			if e = os.RemoveAll(filepath.Join(tempRoot, entry.Name())); e != nil {
 				return fmt.Errorf("Nettoyage des fichiers temporaires de connexion impossible : %w", e)
 			}
@@ -130,6 +130,7 @@ func run() error {
 	manager := queue.New(store, runner)
 	defer manager.Close()
 	api := web.New(store, manager, vault, dataDir, toolsDir)
+	defer api.Close()
 	state, e := manager.Snapshot()
 	if e != nil {
 		return e
@@ -171,7 +172,7 @@ func run() error {
 	var app *application.App
 	var window *application.WebviewWindow
 	var quitting atomic.Bool
-	app = application.New(application.Options{Name: "dl-manager", Description: "Gestionnaire de téléchargements", Icon: icon(), Assets: application.AssetOptions{Handler: handler}, Windows: application.WindowsOptions{DisableQuitOnLastWindowClosed: false, WebviewUserDataPath: filepath.Join(dataDir, "webview")}, OnShutdown: func() { quitting.Store(true); manager.Close() }})
+	app = application.New(application.Options{Name: "dl-manager", Description: "Gestionnaire de téléchargements", Icon: icon(), Assets: application.AssetOptions{Handler: handler}, Windows: application.WindowsOptions{DisableQuitOnLastWindowClosed: false, WebviewUserDataPath: filepath.Join(dataDir, "webview")}, OnShutdown: func() { quitting.Store(true); api.Close(); manager.Close() }})
 	window = app.Window.NewWithOptions(application.WebviewWindowOptions{Title: "dl-manager", Width: 1280, Height: 850, MinWidth: 840, MinHeight: 620, URL: "/", BackgroundColour: application.NewRGB(17, 21, 29)})
 	quit := func() { quitting.Store(true); app.Quit() }
 	api.Hide = func() { window.Minimise() }

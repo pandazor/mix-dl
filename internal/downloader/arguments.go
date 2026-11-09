@@ -82,7 +82,11 @@ func BuildInvocation(j model.Job, s model.Settings, c Credentials, temp, archive
 		return inv, nil
 	}
 	u, _ := url.Parse(j.URL)
-	creator := platform.Get(j.Site).Creator
+	creator := platform.GetForSettings(j.Site, s).Creator
+	custom, customized := s.CustomSites[j.Site]
+	if strings.HasPrefix(j.Site, "custom_") && (!customized || !model.DomainMatches(u.Hostname(), custom.Domain)) {
+		return Invocation{}, errors.New("Le domaine de la tâche ne correspond pas au site personnalisé")
+	}
 	if j.Site == "rule34" {
 		tag := u.Query().Get("tags")
 		if tag != "" {
@@ -95,6 +99,9 @@ func BuildInvocation(j model.Job, s model.Settings, c Credentials, temp, archive
 	dir := []string{}
 	if j.Layout == "site" || j.Layout == "creator" {
 		site := j.Site
+		if customized {
+			site = custom.Domain
+		}
 		if site == "generic" {
 			site = model.SafeSegment(u.Hostname())
 		}
@@ -129,7 +136,7 @@ func BuildInvocation(j model.Job, s model.Settings, c Credentials, temp, archive
 		siteOpts["access-token"] = c.Token
 		siteOpts["access-token-secret"] = c.TokenSecret
 	}
-	if j.Site != "generic" {
+	if j.Site != "generic" && !customized {
 		extract[j.Site] = siteOpts
 	}
 	httpOpts := map[string]any{"part": true, "timeout": 30, "retries": 3}

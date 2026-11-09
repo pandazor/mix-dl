@@ -9,9 +9,9 @@ import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT = ROOT.parents[1] / 'outputs'
-VERSION = '0.3.2'
+VERSION = '0.4.0'
 ENGINES = ('gallery-dl', 'yt-dlp', 'ffmpeg', 'ffprobe', 'deno')
-DOCS = ('README.md', 'VALIDATION.md', 'THIRD_PARTY.md')
+DOCS = ('README.md', 'VALIDATION.md', 'THIRD_PARTY.md', 'LICENSE')
 
 
 def sha(path):
@@ -62,6 +62,9 @@ def source_entries(platforms):
              'docs/superpowers/specs/2026-11-09-0.3.1-design.md',
              'docs/releases/0.3.1.md',
              'docs/releases/0.3.2.md',
+             'docs/releases/0.4.0.md',
+             'docs/superpowers/plans/2026-11-09-0.4.0.md',
+             'docs/superpowers/specs/2026-11-09-0.4.0-design.md',
              'docs/superpowers/plans/2026-11-09-visible-errors.md']
     if (ROOT / '.gitattributes').is_file():
         names.append('.gitattributes')

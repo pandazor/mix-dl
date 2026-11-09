@@ -1,7 +1,8 @@
 {
   "name": "dl-manager",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "private": true,
+  "license": "AGPL-3.0-only",
   "scripts": {
     "check": "tsc --noEmit -p frontend/tsconfig.json",
     "test:ui": "node scripts/test-ui.mjs"

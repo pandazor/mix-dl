@@ -56,7 +56,11 @@ func (a *API) saveProfile(w http.ResponseWriter, r *http.Request) error {
 	if req.Name == "" || len(req.Name) > 100 {
 		return errors.New("Nom de compte obligatoire, 100 caractères maximum")
 	}
-	site := platform.Get(req.Site)
+	initial, e := a.Manager.Snapshot()
+	if e != nil {
+		return e
+	}
+	site := platform.GetForSettings(req.Site, initial.Settings)
 	if site.ID != req.Site {
 		return errors.New("Site inconnu")
 	}
@@ -77,6 +81,9 @@ func (a *API) saveProfile(w http.ResponseWriter, r *http.Request) error {
 		state, e := a.Store.Snapshot()
 		if e != nil {
 			return e
+		}
+		if platform.GetForSettings(req.Site, state.Settings).ID != req.Site {
+			return errors.New("Site introuvable")
 		}
 		c := downloader.Credentials{Method: req.Method}
 		if !creating {
@@ -124,7 +131,12 @@ func (a *API) saveProfile(w http.ResponseWriter, r *http.Request) error {
 				}
 				c.Cookies = string(b)
 			}
-			if e = auth.ValidateCookies(c.Cookies, req.Site); e != nil {
+			if custom, ok := state.Settings.CustomSites[req.Site]; ok {
+				e = auth.ValidateCookiesForDomain(c.Cookies, custom.Domain)
+			} else {
+				e = auth.ValidateCookies(c.Cookies, req.Site)
+			}
+			if e != nil {
 				return e
 			}
 		} else {

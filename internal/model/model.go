@@ -24,6 +24,7 @@ type SiteSettings struct {
 	Filters     *Filters `json:"filters,omitempty"`
 }
 type Settings struct {
+	CustomSites map[string]CustomSite   `json:"customSites,omitempty"`
 	Destination string                  `json:"destination"`
 	Layout      string                  `json:"layout"`
 	Filename    string                  `json:"filename"`
@@ -161,6 +162,9 @@ func (f Filters) Allowed() []string {
 func ValidLayout(v string) bool   { return v == "" || v == "flat" || v == "site" || v == "creator" }
 func ValidFilename(v string) bool { return v == "" || v == "default" || v == "id-title" }
 func (s Settings) Validate() error {
+	if e := ValidateCustomSites(s.CustomSites); e != nil {
+		return e
+	}
 	if s.Concurrency < 1 || s.Concurrency > 3 {
 		return errors.New("La concurrence doit être comprise entre 1 et 3")
 	}
@@ -176,7 +180,12 @@ func (s Settings) Validate() error {
 	if s.Destination != "" && !filepath.IsAbs(s.Destination) {
 		return errors.New("Le dossier doit être un chemin absolu")
 	}
-	for _, v := range s.Sites {
+	for id, v := range s.Sites {
+		if strings.HasPrefix(id, "custom_") {
+			if _, ok := s.CustomSites[id]; !ok {
+				return errors.New("Réglages de site personnalisé orphelins")
+			}
+		}
 		if !ValidLayout(v.Layout) || !ValidFilename(v.Filename) {
 			return errors.New("Réglage de site invalide")
 		}
