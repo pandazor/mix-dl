@@ -4,6 +4,17 @@ Gestionnaire personnel de téléchargements utilisant gallery-dl et yt-dlp.
 Le paquet inclut les moteurs : aucune installation de Python, Go, FFmpeg ou Deno
 n'est nécessaire pour l'utiliser.
 
+## Licence
+
+Copyright (C) 2026 pandazor et contributeurs.
+
+Le code propre à dl-manager est distribué sous **GNU Affero General Public License,
+version 3 uniquement (AGPL-3.0-only)**. Voir [LICENSE](LICENSE) pour le texte complet.
+Ce logiciel est fourni sans garantie. Les composants tiers conservent leurs licences
+respectives, décrites dans [THIRD_PARTY.md](THIRD_PARTY.md) et les notices jointes.
+
+Sources : https://github.com/pandazor/mix-dl
+
 ## Démarrage
 
 1. Extraire **tout** le ZIP dans un dossier où votre compte Windows peut écrire,

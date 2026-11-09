@@ -11,7 +11,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT = ROOT.parents[1] / 'outputs'
 VERSION = '0.3.2'
 ENGINES = ('gallery-dl', 'yt-dlp', 'ffmpeg', 'ffprobe', 'deno')
-DOCS = ('README.md', 'VALIDATION.md', 'THIRD_PARTY.md')
+DOCS = ('README.md', 'VALIDATION.md', 'THIRD_PARTY.md', 'LICENSE')
 
 
 def sha(path):
