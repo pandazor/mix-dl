@@ -24,18 +24,19 @@ type CredentialVault interface {
 }
 
 type API struct {
-	OAuth    *oauthflow.Service
-	backupMu sync.Mutex
-	Store    *storage.Store
-	Manager  *queue.Manager
-	Vault    CredentialVault
-	DataDir  string
-	ToolsDir string
-	Token    string
-	Pick     func(string) (string, error)
-	Hide     func()
-	Quit     func()
-	OpenURL  func(string) error
+	OAuth           *oauthflow.Service
+	backupMu        sync.Mutex
+	Store           *storage.Store
+	Manager         *queue.Manager
+	Vault           CredentialVault
+	DataDir         string
+	ToolsDir        string
+	Token           string
+	Pick            func(string) (string, error)
+	Hide            func()
+	Quit            func()
+	OpenURL         func(string) error
+	LanguageChanged func(string)
 }
 
 func New(s *storage.Store, m *queue.Manager, v CredentialVault, data, tools string) *API {
@@ -92,7 +93,7 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			e = err
 			break
 		}
-		reply(w, map[string]any{"state": state, "sites": platform.ForSettings(state.Settings), "dataDir": a.DataDir, "version": "0.4.0", "platform": runtime.GOOS})
+		reply(w, map[string]any{"state": state, "sites": platform.ForSettings(state.Settings), "dataDir": a.DataDir, "version": "0.5.0", "platform": runtime.GOOS})
 		return
 	case "GET /api/profile":
 		e = a.profileDetails(w, r)
@@ -132,6 +133,16 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		e = a.importBackup(w, r)
 		if e == nil {
 			return
+		}
+	case "POST /api/settings/language":
+		var req struct {
+			Language string `json:"language"`
+		}
+		if e = decode(w, r, &req); e == nil {
+			e = a.Manager.SaveLanguage(req.Language)
+			if e == nil && a.LanguageChanged != nil {
+				a.LanguageChanged(req.Language)
+			}
 		}
 	case "POST /api/settings/destination":
 		var req struct {

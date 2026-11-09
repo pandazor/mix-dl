@@ -27,3 +27,7 @@ La session actuelle permet d'écrire dans son espace de travail, pas dans G:\Doc
 ## Évolution 0.4.0 — 9 novembre 2026
 
 Windows et Linux sont désormais ciblés. Connexion OAuth guidée pour Tumblr/DeviantArt et fiches de sites personnalisés nommées : voir docs/superpowers/specs/2026-11-09-0.4.0-design.md. La connexion et le consentement restent manuels dans le navigateur ; les nouveaux tokens sont récupérés par le moteur puis remplis dans le formulaire. Les fiches personnalisées restent séparées du catalogue d’extracteurs gallery-dl. Le projet est publié sous AGPL-3.0-only ; composants tiers sous leurs licences respectives.
+
+## 0.5.0 — langues
+
+Settings.Language conserve fr/en/es/zh-CN/ja (vide ancien = français). Une route dédiée modifie uniquement cette préférence sous le verrou du gestionnaire. Les appels de traduction explicites utilisent un catalogue JSON local partagé avec les dialogues natifs ; les données utilisateur ne passent jamais dans la traduction. Les paramètres non enregistrés sont restaurés après le rendu dans une autre langue. Les messages externes inconnus et journaux restent bruts.

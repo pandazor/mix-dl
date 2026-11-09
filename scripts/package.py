@@ -9,9 +9,12 @@ import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT = ROOT.parents[1] / 'outputs'
-VERSION = '0.4.0'
+VERSION = '0.5.0'
 ENGINES = ('gallery-dl', 'yt-dlp', 'ffmpeg', 'ffprobe', 'deno')
 DOCS = ('README.md', 'VALIDATION.md', 'THIRD_PARTY.md', 'LICENSE')
+USER_DOCS = ('docs/guide.fr.md', 'docs/README.en.md', 'docs/README.es.md',
+             'docs/README.zh-CN.md', 'docs/README.ja.md', 'docs/donations.md',
+             'docs/technical.fr.md', 'docs/images/downloads.png', 'docs/images/accounts.png')
 
 
 def sha(path):
@@ -42,7 +45,7 @@ def portable_entries(platform):
     executable = 'dl-manager' + suffix
     binary = ROOT / ('bin/linux-x64' if linux else 'bin') / executable
     entries = [(binary, executable)]
-    entries += [(ROOT / name, name) for name in DOCS]
+    entries += [(ROOT / name, name) for name in (*DOCS, *USER_DOCS)]
     entries += [(tools / name, 'tools/' + name) for name in required | {'manifest.json'}]
     entries += [(p, 'tools/' + p.relative_to(tools).as_posix())
                 for p in (tools / 'licenses').rglob('*') if p.is_file()]
@@ -52,7 +55,7 @@ def portable_entries(platform):
 
 def source_entries(platforms):
     names = ['main.go', 'main_windows.go', 'main_linux.go', 'go.mod', 'go.sum', 'package.json',
-             'build.ps1', 'build-linux.ps1', 'build-linux.sh', 'test.ps1', '.gitignore', *DOCS,
+             'build.ps1', 'build-linux.ps1', 'build-linux.sh', 'test.ps1', '.gitignore', *DOCS, *USER_DOCS,
              'docs/design.md', 'docs/progress.md', 'docs/linux-implementation-report.md',
              'docs/superpowers/plans/2026-11-08-dl-manager.md',
              'docs/superpowers/plans/2026-11-09-profiles-linux.md',
@@ -63,6 +66,9 @@ def source_entries(platforms):
              'docs/releases/0.3.1.md',
              'docs/releases/0.3.2.md',
              'docs/releases/0.4.0.md',
+             'docs/releases/0.5.0.md',
+             'docs/superpowers/plans/2026-11-09-languages.md',
+             'docs/superpowers/specs/2026-11-09-languages-design.md',
              'docs/superpowers/plans/2026-11-09-0.4.0.md',
              'docs/superpowers/specs/2026-11-09-0.4.0-design.md',
              'docs/superpowers/plans/2026-11-09-visible-errors.md']

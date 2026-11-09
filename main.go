@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"dl-manager/internal/auth"
 	"dl-manager/internal/downloader"
+	"dl-manager/internal/i18n"
 	"dl-manager/internal/logging"
 	"dl-manager/internal/model"
 	"dl-manager/internal/queue"
@@ -28,7 +29,7 @@ import (
 	"sync/atomic"
 )
 
-//go:embed frontend/index.html frontend/style.css frontend/dist/app.js
+//go:embed frontend/index.html frontend/style.css frontend/dist/app.js frontend/dist/i18n.js
 var assets embed.FS
 
 var errAlreadyOpen = errors.New("dl-manager is already running")
@@ -152,6 +153,12 @@ func run() error {
 		case "/style.css":
 			b, _ = assets.ReadFile("frontend/style.css")
 			w.Header().Set("Content-Type", "text/css")
+		case "/locales.json":
+			b = i18n.Catalog
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		case "/i18n.js":
+			b, _ = assets.ReadFile("frontend/dist/i18n.js")
+			w.Header().Set("Content-Type", "text/javascript")
 		case "/app.js":
 			b, _ = assets.ReadFile("frontend/dist/app.js")
 			w.Header().Set("Content-Type", "text/javascript")
@@ -169,6 +176,10 @@ func run() error {
 		fmt.Println("UI preview http://" + *preview)
 		return http.ListenAndServe(*preview, handler)
 	}
+	var currentLanguage atomic.Value
+	currentLanguage.Store(state.Settings.Language)
+	tr := func(source string) string { return i18n.Text(currentLanguage.Load().(string), source) }
+	api.LanguageChanged = func(language string) { currentLanguage.Store(language) }
 	var app *application.App
 	var window *application.WebviewWindow
 	var quitting atomic.Bool
@@ -184,13 +195,20 @@ func run() error {
 			}
 		})
 		menu := application.NewMenu()
-		menu.Add("Afficher dl-manager").OnClick(func(*application.Context) { window.Show(); window.Focus() })
-		menu.Add("Tout mettre en pause").OnClick(func(*application.Context) { manager.Pause() })
+		showItem := menu.Add(tr("Afficher dl-manager")).OnClick(func(*application.Context) { window.Show(); window.Focus() })
+		pauseItem := menu.Add(tr("Tout mettre en pause")).OnClick(func(*application.Context) { manager.Pause() })
 		menu.AddSeparator()
-		menu.Add("Quitter").OnClick(func(*application.Context) { quit() })
+		quitItem := menu.Add(tr("Quitter")).OnClick(func(*application.Context) { quit() })
 		tray := app.SystemTray.New()
 		tray.SetIcon(icon())
-		tray.SetTooltip("dl-manager - téléchargements")
+		tray.SetTooltip(tr("dl-manager - téléchargements"))
+		api.LanguageChanged = func(language string) {
+			currentLanguage.Store(language)
+			showItem.SetLabel(tr("Afficher dl-manager"))
+			pauseItem.SetLabel(tr("Tout mettre en pause"))
+			quitItem.SetLabel(tr("Quitter"))
+			tray.SetTooltip(tr("dl-manager - téléchargements"))
+		}
 		tray.SetMenu(menu)
 		tray.OnClick(func() { window.Show(); window.Focus() })
 		api.Hide = func() { window.Hide() }
@@ -199,19 +217,19 @@ func run() error {
 	api.OpenURL = func(url string) error { return app.Browser.OpenURL(url) }
 	api.Pick = func(kind string) (string, error) {
 		if kind == "backup-export" {
-			return app.Dialog.SaveFile().AttachToWindow(window).AddFilter("Sauvegarde chiffrée", "*.dlmbackup").SetFilename("dl-manager-sites.dlmbackup").CanCreateDirectories(true).PromptForSingleSelection()
+			return app.Dialog.SaveFile().AttachToWindow(window).AddFilter(tr("Sauvegarde chiffrée"), "*.dlmbackup").SetFilename("dl-manager-sites.dlmbackup").CanCreateDirectories(true).PromptForSingleSelection()
 		}
 		d := app.Dialog.OpenFile().AttachToWindow(window)
 		if kind == "directory" {
-			d.CanChooseDirectories(true).CanChooseFiles(false).CanCreateDirectories(true).SetTitle("Choisir un dossier de téléchargement")
+			d.CanChooseDirectories(true).CanChooseFiles(false).CanCreateDirectories(true).SetTitle(tr("Choisir un dossier de téléchargement"))
 		} else if kind == "backup-import" {
-			d.AddFilter("Sauvegarde chiffrée", "*.dlmbackup").SetTitle("Importer les sites et comptes")
+			d.AddFilter(tr("Sauvegarde chiffrée"), "*.dlmbackup").SetTitle(tr("Importer les sites et comptes"))
 		} else if kind == "cookies" {
-			d.AddFilter("Cookies Netscape", "*.txt").SetTitle("Importer cookies.txt")
+			d.AddFilter(tr("Cookies Netscape"), "*.txt").SetTitle(tr("Importer cookies.txt"))
 		} else {
-			d.SetTitle("Choisir un moteur")
+			d.SetTitle(tr("Choisir un moteur"))
 			if runtime.GOOS == "windows" {
-				d.AddFilter("Exécutable Windows", "*.exe")
+				d.AddFilter(tr("Exécutable Windows"), "*.exe")
 			}
 		}
 		return d.PromptForSingleSelection()

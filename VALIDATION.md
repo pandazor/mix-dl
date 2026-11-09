@@ -1,3 +1,24 @@
+# Vérifications de dl-manager 0.5.0
+
+Validation du 9 novembre 2026, Windows x64.
+
+- **65 tests Go principaux réussis, aucun ignoré**, dont DPAPI réel, téléchargement/reprise gallery-dl sur serveur local et nouveau réglage de langue. L’API accepte les cinq langues, conserve les autres réglages et rejette une langue inconnue ; les anciens paramètres sans langue restent compatibles.
+- **431 messages dans chacune des cinq langues** (français, anglais, espagnol, chinois simplifié, japonais). Contrôle des clés, champs non vides, paramètres de substitution, absence de HTML et couverture des appels explicites frontend/natifs. Formats de nombres/dates selon la langue ; chemins et données personnelles inchangés.
+- Chrome réel avec données et profil temporaires : changement immédiat et rechargement dans les cinq langues, quatre pages principales, dialogue de compte et de sauvegarde, erreurs backend traduites, nom contenant du HTML affiché comme texte. Conservation des réglages non enregistrés, y compris une valeur saisie pendant la sauvegarde de langue (régression reproduite puis corrigée).
+- Requête de langue retardée : navigation désactivée jusqu’à la fin pour éviter d’ouvrir un dialogue dans l’ancienne langue. Test reproduit avant correction, puis réussi. Un ancien chargement de state retardé est terminé avant le chargement frais ; test passé, langue finale conservée.
+- Parcours Chrome antérieurs (destinations, héritage, comptes, export/import chiffré, OAuth simulé, sites personnalisés, erreurs) réussis. Aucun message d’erreur JavaScript. Captures espagnoles, chinoises et japonaises inspectées à largeur 840 px ; contrôles sans débordement horizontal.
+- TypeScript compilé ; go vet Windows et Linux/purego réussis ; exécutables Windows x64 et Linux x64 compilés.
+- Cinq guides utilisateur avec liens croisés, captures françaises fournies par l’auteur, exemple cookies.txt et tableau distinguant téléchargements confirmés et intégrations à valider. Anciennes notes techniques conservées en français.
+- Revue indépendante limitée aux extraits fournis : risque de dialogue dans l’ancienne langue identifié puis couvert et corrigé ; interrogation sur les réponses obsolètes vérifiée par le test de chargement retardé. Les outils de lecture des agents ont bloqué : aucune revue indépendante complète des fichiers ou des traductions n’est revendiquée.
+
+## Limites 0.5.0
+
+Les traductions ont été rédigées et contrôlées dans cette session ; une relecture par des locuteurs natifs reste bienvenue. Les journaux et erreurs externes inconnues gardent leur texte d’origine ; certains messages système précédant le chargement des préférences restent en français. Les dialogues et menus natifs ont été compilés, mais leur manipulation dans une session de bureau reste à valider. Le lancement Linux et son trousseau, ainsi que la connexion réelle par les nouveaux boutons OAuth, restent à essayer.
+
+Le lien personnel Revolut.me n’a pas été fourni : les instructions GitHub sont prêtes, aucun bénéficiaire ni bouton de paiement actif n’a été inventé. data et downloads existants n’ont pas été utilisés par les essais.
+
+---
+
 # Vérifications de dl-manager 0.4.0
 
 Validation du 9 novembre 2026, Windows x64.
