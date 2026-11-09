@@ -25,8 +25,8 @@ Interfaces: Settings.Language; Manager.SaveLanguage(string); POST settings/langu
 - [x] Browser test switch/reload/all pages/unsaved values/escaped user text; validate catalog coverage.
 
 ### Task 2: guides and delivery
-Files: README.md; docs/README.{en,es,zh-CN,ja}.md; docs/images; docs/donations.md; scripts/package.py; version files.
+Files: README.md; docs/README.{en,es,zh-CN,ja}.md; docs/images; .github/FUNDING.yml; scripts/package.py; version files.
 - [x] Complete five guides with tagline, cookies example, honest compatibility table and screenshots.
-- [x] Document Revolut funding setup awaiting personal link.
+- [x] Configure GitHub funding and translated guide links with the public Revolut.me URL supplied by the maintainer.
 - [x] Compile TypeScript, run suite/UI, vet, build both platforms; review final diff.
 Delivery: commit, package and verify archives; push branch, no release publication.

@@ -4,6 +4,8 @@
 
 [Français](guide.fr.md) · [English](README.en.md) · [Español](README.es.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
+❤️ [支持项目](https://revolut.me/ludwigccae)
+
 dl-manager 为 gallery-dl 和 yt-dlp 提供桌面界面：粘贴链接，选择图片或视频，然后启动下载队列。软件包已包含下载引擎及其依赖。
 
 ## 下载与启动
@@ -105,6 +107,6 @@ Windows 使用 DPAPI 保护账户；Linux 使用存放在 Secret Service 中的�
 
 ## 参与项目
 
-欢迎提交测试反馈和 [问题报告](https://github.com/pandazor/mix-dl/issues)。捐赠链接尚未配置。
+欢迎提交测试反馈和 [问题报告](https://github.com/pandazor/mix-dl/issues)。如果这个工具对你有帮助，可以[通过 Revolut 捐赠](https://revolut.me/ludwigccae)。金额由你决定，捐赠完全自愿。
 
 代码采用 **AGPL-3.0-only**：[许可证](../LICENSE)。下载引擎保留各自的许可证：[第三方声明](../THIRD_PARTY.md)。[验证记录与限制](../VALIDATION.md)及[技术／编译说明](technical.fr.md)仍为法语。欢迎母语使用者帮助改进翻译。

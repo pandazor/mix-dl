@@ -6,6 +6,6 @@ Choix de réalisation : catalogues locaux complets, sans traduction en ligne. La
 
 Approches : traduction navigateur rejetée (dépendance externe et données privées) ; copies de l’interface rejetées (maintenance divergente) ; un catalogue partagé et des appels de traduction explicites retenus par l’implémenteur.
 
-Documentation utilisateur complète dans cinq langues, liens croisés, captures françaises signalées. Tableau distinguant tests utilisateur confirmés et intégrations restant à valider. Extension recommandée : Get cookies.txt LOCALLY, export du site courant uniquement. Dons : instructions GitHub FUNDING.yml + Revolut.me ; aucun bénéficiaire inventé, pas de bouton actif tant que le lien personnel manque.
+Documentation utilisateur complète dans cinq langues, liens croisés, captures françaises signalées. Tableau distinguant tests utilisateur confirmés et intégrations restant à valider. Extension recommandée : Get cookies.txt LOCALLY, export du site courant uniquement. Dons : lien Revolut.me fourni par le mainteneur, configuré dans .github/FUNDING.yml et les cinq guides. Soutien facultatif, montant libre ; aucun paiement intégré à l’application.
 
 Contraintes : préserver data/downloads ; branche feat/0.5.0 depuis main contenant V0.4.0 ; pas de publication de release ni push forcé. AGPL inchangée et références techniques françaises conservées et identifiées.

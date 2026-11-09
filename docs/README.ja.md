@@ -4,6 +4,8 @@
 
 [Français](guide.fr.md) · [English](README.en.md) · [Español](README.es.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
+❤️ [プロジェクトを支援](https://revolut.me/ludwigccae)
+
 gallery-dl と yt-dlp のデスクトップ用インターフェースです。リンクを貼り付け、画像や動画を選び、キューを開始するだけでダウンロードできます。エンジンとその依存ツールはパッケージに同梱されています。
 
 ## ダウンロードと起動
@@ -105,6 +107,6 @@ Windows では DPAPI、Linux では Secret Service に保管したキーでア�
 
 ## プロジェクトへの参加
 
-テスト結果や[不具合報告](https://github.com/pandazor/mix-dl/issues)を歓迎します。寄付先のリンクはまだ設定されていません。
+テスト結果や[不具合報告](https://github.com/pandazor/mix-dl/issues)を歓迎します。このアプリが役に立ったら、[Revolut で寄付](https://revolut.me/ludwigccae)できます。金額は自由で、支援は完全に任意です。
 
 コードは **AGPL-3.0-only**：[ライセンス](../LICENSE)。同梱エンジンにはそれぞれのライセンスが適用されます：[第三者のライセンス](../THIRD_PARTY.md)。[検証状況と制限](../VALIDATION.md)、[技術・ビルド資料](technical.fr.md)はフランス語です。翻訳を改善する母語話者の協力も歓迎します。

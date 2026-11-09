@@ -15,7 +15,7 @@ Validation du 9 novembre 2026, Windows x64.
 
 Les traductions ont été rédigées et contrôlées dans cette session ; une relecture par des locuteurs natifs reste bienvenue. Les journaux et erreurs externes inconnues gardent leur texte d’origine ; certains messages système précédant le chargement des préférences restent en français. Les dialogues et menus natifs ont été compilés, mais leur manipulation dans une session de bureau reste à valider. Le lancement Linux et son trousseau, ainsi que la connexion réelle par les nouveaux boutons OAuth, restent à essayer.
 
-Le lien personnel Revolut.me n’a pas été fourni : les instructions GitHub sont prêtes, aucun bénéficiaire ni bouton de paiement actif n’a été inventé. data et downloads existants n’ont pas été utilisés par les essais.
+Le lien de soutien fourni par le mainteneur est configuré dans .github/FUNDING.yml et les cinq guides, en HTTPS. Le bouton GitHub dépend de la présence de ce fichier sur la branche par défaut et de l’option Sponsorships du dépôt. data et downloads existants n’ont pas été utilisés par les essais.
 
 ---
 

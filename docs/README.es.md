@@ -4,6 +4,8 @@
 
 [Français](guide.fr.md) · [English](README.en.md) · [Español](README.es.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
+❤️ [Apoyar el proyecto](https://revolut.me/ludwigccae)
+
 Una interfaz de escritorio para gallery-dl y yt-dlp: pega enlaces, elige imágenes o vídeos e inicia la cola. Los motores y sus dependencias están incluidos en los paquetes.
 
 ## Descargar e iniciar
@@ -105,6 +107,6 @@ Windows protege las cuentas con DPAPI; Linux utiliza una clave de Secret Service
 
 ## Participar
 
-Se agradecen pruebas y [avisos de problemas](https://github.com/pandazor/mix-dl/issues). El enlace de donaciones todavía no está configurado.
+Se agradecen pruebas y [avisos de problemas](https://github.com/pandazor/mix-dl/issues). Si la aplicación te resulta útil, puedes [hacer una donación mediante Revolut](https://revolut.me/ludwigccae). Tú eliges el importe y el apoyo es totalmente voluntario.
 
 Código bajo **AGPL-3.0-only**: [licencia](../LICENSE). Los motores conservan sus licencias: [avisos](../THIRD_PARTY.md). La [validación y sus límites](../VALIDATION.md) y las [notas técnicas y de compilación](technical.fr.md) permanecen en francés. Las mejoras de hablantes nativos son bienvenidas.
