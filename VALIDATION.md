@@ -1,3 +1,23 @@
+# Vérifications de dl-manager 0.3.2
+
+Validation du 9 novembre 2026, Windows x64.
+
+- Reproduction sur le binaire 0.3.1 : une tâche Tumblr en échec, injectée via une réponse /api/state synthétique, disparaît de Téléchargements. Le test échoue sur l'absence de sa ligne avant correction.
+- Après correction, test Chrome réussi : échec visible, explication du quota et heure conservée, texte à la ligne, Détails et bouton de remise en attente disponibles ; erreur réseau inchangée ; tâche terminée réservée à l'Historique. Capture 1100 × 800 inspectée, aucune erreur JavaScript.
+- Le même parcours vérifie les régressions de destination et sauvegarde de 0.3.1 dans une base et un profil temporaires. Aucun accès à Tumblr, cookie ou compte réel pendant les tests.
+- Suite Go Windows : **49 tests principaux réussis (64 avec les sous-tests), aucun ignoré**, dont DPAPI réel et téléchargement gallery-dl sur un serveur local.
+- TypeScript compilé ; go vet Windows et Linux (purego) réussis ; exécutables Windows x64 et Linux x64 compilés.
+- Diagnostic utilisateur, lecture seule des métadonnées et journaux : trois essais Tumblr ont échoué sur le quota quotidien de l'API, code 4, aucun fichier ajouté. L'authentification du profil était bien associée aux tâches. Ce résultat ne valide pas encore un téléchargement Tumblr.
+- TikTok et ArtStation : téléchargements confirmés par l'utilisateur sur 0.3.1. Instagram et Rule34 : retours positifs antérieurs.
+
+## Limites 0.3.2
+
+Ce correctif affiche les erreurs ; il n'augmente pas le quota partagé de Tumblr et ne relance aucune tâche automatiquement. L'heure de remise à zéro est celle fournie par le moteur, sans conversion de fuseau. Les clés d'une application Tumblr personnelle (consumer key et secret) ne sont pas encore prises en charge.
+
+Le lancement et le trousseau Linux restent à valider sur Linux. Le test de fermeture native Windows était inconclusif en 0.3.1 (WebView2 dans la session d'automatisation) ; ce parcours natif n'a pas été retesté pour ce correctif d'affichage.
+
+---
+
 # Vérifications de dl-manager 0.3.1
 
 Validation du 9 novembre 2026, Windows x64.

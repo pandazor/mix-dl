@@ -56,5 +56,25 @@ try{
  assert.equal(await page.locator('#site-dest').inputValue(),picked);
  assert.equal((await state()).settings.sites.rule34.destination,custom);
  await page.setViewportSize({width:840,height:620});
- assert.deepEqual(jsErrors,[]);await page.screenshot({path:join(dir,'site-inheritance.png'),fullPage:true});console.log('PASS: global autosave, inheritance, override, encrypted export with running scheduler, import pause, invalid path; '+dir);
+ await page.screenshot({path:join(dir,'site-inheritance.png'),fullPage:true});
+ await page.locator('#modal [data-close]').first().click();
+ // Exercise the public state contract without accessing Tumblr or real credentials.
+ const fixture=await (await fetch(url+'/api/state')).json();
+ const failed={id:'test-tumblr-quota',url:'https://www.tumblr.com/test-only',site:'tumblr',destination:picked,destinationMode:'inherit',layout:'site_creator',filename:'site',profileId:'',profileMode:'none',status:'failed',added:'2026-11-09T14:17:11Z',started:'2026-11-09T14:17:11Z',ended:'2026-11-09T14:17:13Z',error:'[tumblr][error] Aborting - Rate limit will reset at 19:06:46',exitCode:4,bytes:0,files:0,skipped:0,current:'',order:0};
+ fixture.state.jobs=[failed,{...failed,id:'test-completed',url:'https://www.tumblr.com/completed-only',status:'completed',error:''},{...failed,id:'test-other-error',url:'https://example.org/test-only',site:'generic',error:'Network unavailable'}];
+ await page.route('**/api/state',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(fixture)}));
+ await page.reload();await page.locator('[data-page=downloads]').click();
+ await page.locator('[data-detail=test-tumblr-quota]').waitFor({timeout:3000});
+ const row=page.locator('tr').filter({has:page.locator('[data-detail=test-tumblr-quota]')});
+ assert.match(await row.innerText(),/Quota de l’API Tumblr atteint/);
+ assert.match(await row.innerText(),/19:06:46/);
+ assert.equal(await row.locator('[data-action=retry]').count(),1);
+ assert.equal(await page.locator('[data-detail=test-completed]').count(),0);
+ assert.match(await page.locator('tr').filter({has:page.locator('[data-detail=test-other-error]')}).innerText(),/Network unavailable/);
+ assert.equal(await row.locator('.job-error').evaluate(el=>getComputedStyle(el).whiteSpace),'normal');
+ await page.setViewportSize({width:1100,height:800});await page.screenshot({path:join(dir,'visible-errors.png'),fullPage:true});
+ await row.locator('[data-detail]').click();assert.match(await page.locator('#modal .detail-grid').innerText(),/Quota de l’API Tumblr atteint.*19:06:46/s);
+ await page.locator('#modal [data-close]').first().click();
+ await page.locator('[data-page=history]').click();assert.equal(await page.locator('[data-detail=test-tumblr-quota]').count(),1);assert.equal(await page.locator('[data-detail=test-completed]').count(),1);
+ assert.deepEqual(jsErrors,[]);console.log('PASS: global autosave, inheritance, override, encrypted export with running scheduler, import pause, invalid path, visible errors and quota explanation; '+dir);
 }finally{if(browser)await browser.close();child.kill();}

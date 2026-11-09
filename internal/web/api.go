@@ -80,7 +80,7 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			e = err
 			break
 		}
-		reply(w, map[string]any{"state": state, "sites": platform.Sites, "dataDir": a.DataDir, "version": "0.3.1", "platform": runtime.GOOS})
+		reply(w, map[string]any{"state": state, "sites": platform.Sites, "dataDir": a.DataDir, "version": "0.3.2", "platform": runtime.GOOS})
 		return
 	case "GET /api/profile":
 		e = a.profileDetails(w, r)
