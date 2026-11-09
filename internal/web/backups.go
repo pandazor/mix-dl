@@ -127,7 +127,7 @@ func (a *API) exportBackup(w http.ResponseWriter, r *http.Request) error {
 		return errors.New("Choisissez un nouveau fichier .dlmbackup avec un chemin absolu")
 	}
 	var doc backupDocument
-	e := a.Manager.WithIdle(func() error {
+	e := a.Manager.WithConfigurationRead(func() error {
 		state, e := a.Store.Snapshot()
 		if e != nil {
 			return errors.New("Impossible de lire les réglages")

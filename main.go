@@ -171,7 +171,7 @@ func run() error {
 	var app *application.App
 	var window *application.WebviewWindow
 	var quitting atomic.Bool
-	app = application.New(application.Options{Name: "dl-manager", Description: "Gestionnaire de téléchargements", Icon: icon(), Assets: application.AssetOptions{Handler: handler}, Windows: application.WindowsOptions{DisableQuitOnLastWindowClosed: true, WebviewUserDataPath: filepath.Join(dataDir, "webview")}, OnShutdown: func() { quitting.Store(true); manager.Close() }})
+	app = application.New(application.Options{Name: "dl-manager", Description: "Gestionnaire de téléchargements", Icon: icon(), Assets: application.AssetOptions{Handler: handler}, Windows: application.WindowsOptions{DisableQuitOnLastWindowClosed: false, WebviewUserDataPath: filepath.Join(dataDir, "webview")}, OnShutdown: func() { quitting.Store(true); manager.Close() }})
 	window = app.Window.NewWithOptions(application.WebviewWindowOptions{Title: "dl-manager", Width: 1280, Height: 850, MinWidth: 840, MinHeight: 620, URL: "/", BackgroundColour: application.NewRGB(17, 21, 29)})
 	quit := func() { quitting.Store(true); app.Quit() }
 	api.Hide = func() { window.Minimise() }
@@ -179,7 +179,7 @@ func run() error {
 		window.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
 			if !quitting.Load() {
 				e.Cancel()
-				window.Hide()
+				go quit()
 			}
 		})
 		menu := application.NewMenu()

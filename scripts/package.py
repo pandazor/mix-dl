@@ -9,7 +9,7 @@ import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT = ROOT.parents[1] / 'outputs'
-VERSION = '0.3.0'
+VERSION = '0.3.1'
 ENGINES = ('gallery-dl', 'yt-dlp', 'ffmpeg', 'ffprobe', 'deno')
 DOCS = ('README.md', 'VALIDATION.md', 'THIRD_PARTY.md')
 
@@ -57,7 +57,10 @@ def source_entries(platforms):
              'docs/superpowers/plans/2026-11-08-dl-manager.md',
              'docs/superpowers/plans/2026-11-09-profiles-linux.md',
               'docs/superpowers/plans/2026-11-09-destinations-backup.md',
-              'docs/superpowers/specs/2026-11-09-destinations-backup-design.md']
+              'docs/superpowers/specs/2026-11-09-destinations-backup-design.md',
+             'docs/superpowers/plans/2026-11-09-0.3.1.md',
+             'docs/superpowers/specs/2026-11-09-0.3.1-design.md',
+             'docs/releases/0.3.1.md']
     if (ROOT / '.gitattributes').is_file():
         names.append('.gitattributes')
     entries = [(ROOT / name, name) for name in names]

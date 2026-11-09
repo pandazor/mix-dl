@@ -85,7 +85,7 @@ async function openSite(id, profile) {
     const selected = profile?.id || s.profileId || profiles[0]?.id || '';
     showModal(`<div class="modal-head"><h2>${esc(site.name)}</h2><button data-close>×</button></div>
  <form id="site-form" data-site-id="${id}"><h3>Destination et classement</h3><div class="form-grid">
- <label class="full">Dossier propre à ce site${pathInput('site-dest', s.destination || '')}</label><p class="full footer-note">Laisser vide pour utiliser le dossier global : <code>${esc(data.state.settings.destination)}</code>. Le dossier est fixé au premier démarrage de la tâche.</p>
+ <label class="full check"><input id="site-use-global" type="checkbox" ${!s.destination ? 'checked' : ''}>Utiliser le dossier global</label><label class="full">Dossier de téléchargement${pathInput('site-dest', s.destination || '', 'Choisir un dossier propre à ce site')}</label><p class="full footer-note">Dossier global actuel : <code>${esc(data.state.settings.destination)}</code>. Cochez pour suivre ses changements ; décochez pour choisir un dossier propre au site. Les tâches déjà commencées gardent leur dossier.</p>
  <label>Organisation<select id="site-layout">${opts([['', 'Hériter du réglage global'], ...layouts], s.layout || '')}</select></label>
  <label>Nommage des fichiers<select id="site-filename">${opts([['', 'Hériter du réglage global'], ...filenames], s.filename || '')}</select></label>
  <label class="full">Compte par défaut pour les tâches héritées<select id="site-default">${opts([['', 'Sans compte'], ...profiles.map(p => [p.id, p.name])], s.profileId || '')}</select></label>
@@ -94,6 +94,7 @@ async function openSite(id, profile) {
  <div class="guide">${esc(site.guide)}<br><button class="small ghost" type="button" data-help="${id}" style="margin-top:10px">Ouvrir le site / la documentation ↗</button></div>
  <label>Compte à consulter ou modifier<select id="profile-select" data-site-id="${id}">${opts([['', 'Ajouter un nouveau compte'], ...profiles.map(p => [p.id, p.name])], selected)}</select></label>
  <div id="account-editor" class="section-gap"></div>`);
+    updateSiteDestination();
     $('#site-filter-options').classList.toggle('hidden', !s.filters);
     await showProfileEditor(id, selected);
 }
@@ -124,7 +125,55 @@ async function showProfileEditor(siteId, id) {
 function jobProfileMode(j) { return j.profileMode || (j.profileId ? 'explicit' : 'inherit'); }
 function jobProfileLabel(j) { const mode = jobProfileMode(j); const id = mode === 'inherit' ? data.state.settings.sites[j.site]?.profileId : j.profileId; const p = data.state.profiles.find(x => x.id === id); return mode === 'none' ? 'Sans compte' : (mode === 'inherit' ? 'Par défaut : ' : '') + (p?.name || 'Sans compte'); }
 function toggleMethod() { const m = val('profile-method'); $('#cookie-field').classList.toggle('hidden', m !== 'cookies'); $('#userid-field').classList.toggle('hidden', m !== 'api'); $('#token-field').classList.toggle('hidden', m === 'cookies'); $('#secret-field').classList.toggle('hidden', m !== 'oauth1'); }
-function renderSettings() { const s = data.state.settings; $('#main').innerHTML = header('Paramètres', 'Le dossier global s’applique aux tâches héritées jamais démarrées. Les autres valeurs s’appliquent aux nouveaux ajouts.') + `<form id="settings-form"><section class="panel settings-panel"><h2>Destination & classement</h2><div class="form-grid"><label class="full">Dossier global de téléchargement${pathInput('global-dest', s.destination, 'Choisir un dossier')}</label><label>Organisation des dossiers<select id="global-layout">${opts(layouts, s.layout)}</select></label><label>Nommage des fichiers<select id="global-filename">${opts(filenames, s.filename)}</select></label><div class="full preview" id="path-preview"></div></div></section><section class="panel settings-panel"><h2>Rythme & limite de volume</h2><div class="form-grid"><label>Téléchargements simultanés<select id="concurrency">${opts([['1', '1 tâche'], ['2', '2 tâches'], ['3', '3 tâches']], String(s.concurrency))}</select></label><label>Débit par tâche (Kio/s, 0 = illimité)<input id="rate" type="number" min="0" value="${s.rateKiB}"></label><label>Pause après ce volume (Go, 0 = désactivé)<input id="quota" type="number" min="0" step="0.1" value="${s.quotaBytes / 1e9}"></label><div><label>Volume actuel</label><p class="section-gap">${bytes(data.state.usedBytes)} <button type="button" class="small" id="reset-quota">Réinitialiser</button></p></div></div><p class="footer-note">Le compteur est conservé au redémarrage. Le réinitialiser met les tâches en pause et attend votre clic pour reprendre. Un même site et dossier, ou un même compte, est traité par une seule tâche à la fois pour éviter les conflits.</p></section><section class="panel settings-panel"><h2>Médias par défaut</h2><div class="section-gap">${extensions('global', s.filters)}</div><p class="footer-note">Les extensions filtrent les fichiers disponibles à la source. Aucun transcodage automatique. Les extensions personnalisées inconnues sont classées comme images.</p></section><section class="panel settings-panel"><h2>Moteurs</h2><div id="engines" class="section-gap muted">Vérification des versions…</div><details><summary>Chemins personnalisés (facultatifs)</summary><div class="form-grid"><label class="full">gallery-dl${pathInput('gallery-path', s.galleryPath, 'Utiliser le moteur du paquet', 'engine')}</label><label class="full">yt-dlp${pathInput('ytdlp-path', s.ytdlpPath, 'Utiliser le moteur du paquet', 'engine')}</label></div></details><p class="footer-note">Données : <code>${esc(data.dataDir)}</code><br>Le paquet garde les outils dans tools/ et les données dans data/.</p><div class="settings-footer"><button class="primary">Enregistrer les paramètres</button></div></section></form>`; preview(); run(async () => { const es = await api('engines'); if (page === 'settings')
+let destinationSave = Promise.resolve();
+async function saveGlobalDestination() {
+    const input = $('#global-dest');
+    if (!input)
+        return destinationSave;
+    const destination = input.value.trim();
+    const status = $('#global-save-status');
+    const pending = destinationSave.catch(() => { }).then(async () => {
+        try {
+            if (destination !== data.state.settings.destination) {
+                if (status.isConnected) {
+                    status.className = 'footer-note';
+                    status.textContent = 'Enregistrement du dossier global…';
+                }
+                await api('settings/destination', { destination });
+                await load(true);
+            }
+            if (input.isConnected && input.value.trim() === destination) {
+                input.value = destination;
+                status.className = 'footer-note';
+                status.textContent = 'Dossier global enregistré. Les sites qui en héritent utilisent ce chemin.';
+            }
+        }
+        catch (e) {
+            if (status.isConnected) {
+                status.className = 'footer-note error';
+                status.textContent = 'Dossier non enregistré : ' + e.message;
+            }
+            throw e;
+        }
+    });
+    destinationSave = pending;
+    return pending;
+}
+function updateSiteDestination() {
+    const input = $('#site-dest');
+    const inherited = check('site-use-global');
+    if (inherited) {
+        if (!input.disabled)
+            input.dataset.customDestination = input.value;
+        input.value = data.state.settings.destination;
+    }
+    else if (input.disabled) {
+        input.value = input.dataset.customDestination || '';
+    }
+    input.disabled = inherited;
+    $('[data-pick="site-dest"]').disabled = inherited;
+}
+function renderSettings() { const s = data.state.settings; $('#main').innerHTML = header('Paramètres', 'Le dossier global s’applique aux tâches héritées jamais démarrées. Les autres valeurs s’appliquent aux nouveaux ajouts.') + `<form id="settings-form"><section class="panel settings-panel"><h2>Destination & classement</h2><div class="form-grid"><label class="full">Dossier global de téléchargement${pathInput('global-dest', s.destination, 'Choisir un dossier')}</label><p id="global-save-status" class="full footer-note" role="status">Le dossier global est enregistré automatiquement après modification. Les autres paramètres se sauvegardent avec le bouton ci-dessous.</p><label>Organisation des dossiers<select id="global-layout">${opts(layouts, s.layout)}</select></label><label>Nommage des fichiers<select id="global-filename">${opts(filenames, s.filename)}</select></label><div class="full preview" id="path-preview"></div></div></section><section class="panel settings-panel"><h2>Rythme & limite de volume</h2><div class="form-grid"><label>Téléchargements simultanés<select id="concurrency">${opts([['1', '1 tâche'], ['2', '2 tâches'], ['3', '3 tâches']], String(s.concurrency))}</select></label><label>Débit par tâche (Kio/s, 0 = illimité)<input id="rate" type="number" min="0" value="${s.rateKiB}"></label><label>Pause après ce volume (Go, 0 = désactivé)<input id="quota" type="number" min="0" step="0.1" value="${s.quotaBytes / 1e9}"></label><div><label>Volume actuel</label><p class="section-gap">${bytes(data.state.usedBytes)} <button type="button" class="small" id="reset-quota">Réinitialiser</button></p></div></div><p class="footer-note">Le compteur est conservé au redémarrage. Le réinitialiser met les tâches en pause et attend votre clic pour reprendre. Un même site et dossier, ou un même compte, est traité par une seule tâche à la fois pour éviter les conflits.</p></section><section class="panel settings-panel"><h2>Médias par défaut</h2><div class="section-gap">${extensions('global', s.filters)}</div><p class="footer-note">Les extensions filtrent les fichiers disponibles à la source. Aucun transcodage automatique. Les extensions personnalisées inconnues sont classées comme images.</p></section><section class="panel settings-panel"><h2>Moteurs</h2><div id="engines" class="section-gap muted">Vérification des versions…</div><details><summary>Chemins personnalisés (facultatifs)</summary><div class="form-grid"><label class="full">gallery-dl${pathInput('gallery-path', s.galleryPath, 'Utiliser le moteur du paquet', 'engine')}</label><label class="full">yt-dlp${pathInput('ytdlp-path', s.ytdlpPath, 'Utiliser le moteur du paquet', 'engine')}</label></div></details><p class="footer-note">Données : <code>${esc(data.dataDir)}</code><br>Le paquet garde les outils dans tools/ et les données dans data/.</p><div class="settings-footer"><button class="primary">Enregistrer les paramètres</button></div></section></form>`; preview(); run(async () => { const es = await api('engines'); if (page === 'settings')
     $('#engines').innerHTML = es.map((e) => `<div class="engine"><span>${esc(e.name)}</span><span>${e.error ? `<span class="error">${esc(e.error)}</span>` : `<code>${esc(e.version)}</code>`}</span></div>`).join(''); }); }
 function preview() { if (!$('#path-preview'))
     return; let p = val('global-dest') || 'Destination'; const l = val('global-layout'); if (l === 'site' || l === 'creator')
@@ -143,6 +192,8 @@ document.addEventListener('click', e => {
         return;
     run(async () => {
         if (b.dataset.page) {
+            if (page === 'settings')
+                await saveGlobalDestination();
             page = b.dataset.page;
             renderPage();
             return;
@@ -153,8 +204,11 @@ document.addEventListener('click', e => {
         }
         if (b.dataset.pick) {
             const r = await api('pick', { kind: b.dataset.kind || 'directory' });
-            if (r.path)
+            if (r.path) {
                 $('#' + b.dataset.pick).value = r.path;
+                if (b.dataset.pick === 'global-dest')
+                    await saveGlobalDestination();
+            }
             preview();
             return;
         }
@@ -196,6 +250,28 @@ document.addEventListener('click', e => {
             return;
         }
         switch (b.id) {
+            case 'backup-pause': {
+                b.setAttribute('disabled', '');
+                try {
+                    await api('queue/pause', {});
+                    const until = Date.now() + 30000;
+                    do {
+                        await load(true);
+                        const status = $('#backup-queue-status');
+                        if (status)
+                            status.textContent = data.state.active ? 'Arrêt des tâches en cours…' : 'File en pause : vous pouvez importer.';
+                        if (!data.state.active)
+                            break;
+                        if (Date.now() > until)
+                            throw Error('Arrêt toujours en cours. Attendez puis réessayez.');
+                        await new Promise(r => setTimeout(r, 200));
+                    } while (true);
+                }
+                finally {
+                    b.removeAttribute('disabled');
+                }
+                return;
+            }
             case 'backup-export':
                 openBackup('export');
                 return;
@@ -247,7 +323,9 @@ document.addEventListener('click', e => {
             renderSettings();
     });
 });
-document.addEventListener('change', e => { const el = e.target; if (el.id === 'override-media')
+document.addEventListener('change', e => { const el = e.target; if (el.id === 'global-dest')
+    run(saveGlobalDestination); if (el.id === 'site-use-global')
+    updateSiteDestination(); if (el.id === 'override-media')
     $('#job-filter-options').classList.toggle('hidden', !el.checked); if (el.id === 'site-media-override')
     $('#site-filter-options').classList.toggle('hidden', !el.checked); if (el.id === 'profile-method')
     toggleMethod(); if (el.id === 'profile-select')
@@ -260,8 +338,12 @@ document.addEventListener('change', e => { const el = e.target; if (el.id === 'o
 document.addEventListener('input', e => { const el = e.target; if (el.id === 'history-search') {
     search = el.value;
     updateJobs();
-} if (el.id === 'global-dest')
-    preview(); if (el.id === 'urls') {
+} if (el.id === 'global-dest') {
+    preview();
+    const status = $('#global-save-status');
+    status.className = 'footer-note';
+    status.textContent = 'Dossier modifié — enregistrement à la sortie du champ.';
+} if (el.id === 'urls') {
     const lines = el.value.split(/\r?\n/).filter(x => x.trim());
     const hosts = new Set(lines.map(x => { try {
         return new URL(x).hostname.replace(/^www\./, '');
@@ -297,6 +379,7 @@ document.addEventListener('submit', e => {
                 await load(true);
             }
             if (form.id === 'settings-form') {
+                await saveGlobalDestination();
                 const s = { ...data.state.settings, destination: val('global-dest'), layout: val('global-layout'), filename: val('global-filename'), filters: readFilters('global'), concurrency: Number(val('concurrency')), quotaBytes: Math.round(Number(val('quota')) * 1e9), rateKiB: Number(val('rate')), galleryPath: val('gallery-path'), ytdlpPath: val('ytdlp-path') };
                 await api('settings', s);
                 await load(true);
@@ -304,7 +387,7 @@ document.addEventListener('submit', e => {
             }
             if (form.id === 'site-form') {
                 const id = form.dataset.siteId;
-                const sc = { destination: val('site-dest'), layout: val('site-layout'), filename: val('site-filename'), profileId: val('site-default') };
+                const sc = { destination: check('site-use-global') ? '' : val('site-dest').trim(), layout: val('site-layout'), filename: val('site-filename'), profileId: val('site-default') };
                 if (check('site-media-override'))
                     sc.filters = readFilters('site');
                 const s = { ...data.state.settings, sites: { ...data.state.settings.sites, [id]: sc } };
@@ -347,7 +430,8 @@ function openBackup(mode) {
  <label class="full">Phrase secrète (16 caractères minimum)<input id="backup-phrase" type="password" autocomplete="${exporting ? 'new-password' : 'off'}" required></label>
  ${exporting ? `<label class="full">Confirmer la phrase secrète<input id="backup-confirm" type="password" autocomplete="new-password" required></label>
  <label class="full check"><input id="backup-ack" type="checkbox" required>Je comprends que ce fichier contient mes accès aux comptes.</label>` : `<label class="full check"><input id="backup-replace" type="checkbox">Remplacer les réglages des sites déjà configurés</label>`}
- </div><p class="footer-note">${exporting ? 'Le fichier est chiffré. Choisissez une phrase longue et unique : elle ne sera pas enregistrée et ne pourra pas être récupérée. Utilisez un nouveau nom de fichier à chaque export.' : 'Les comptes existants sont conservés. Réimporter le même fichier ajoute des doublons. Les chemins incompatibles avec cet OS héritent du dossier global ; vérifiez vos destinations après l’import.'}<br>La file doit être en pause. Les téléchargements, l’historique et les réglages globaux ne font pas partie de cette sauvegarde.</p>
+ </div><p class="footer-note">${exporting ? 'Le fichier est chiffré. Choisissez une phrase longue et unique : elle ne sera pas enregistrée et ne pourra pas être récupérée. Utilisez un nouveau nom de fichier à chaque export.' : 'Les comptes existants sont conservés. Réimporter le même fichier ajoute des doublons. Les chemins incompatibles avec cet OS héritent du dossier global ; vérifiez vos destinations après l’import.'}<br>${exporting ? 'L’export est possible pendant les téléchargements.' : 'L’import nécessite une file en pause et l’arrêt des tâches actives.'} Les téléchargements, l’historique et les réglages globaux ne font pas partie de cette sauvegarde.</p>
+ ${!exporting ? '<div class="row wrap"><button type="button" id="backup-pause">Mettre la file en pause</button><span id="backup-queue-status" class="smalltext muted" role="status"></span></div>' : ''}
  <div class="settings-footer"><button type="button" data-close>Annuler</button><button class="primary" type="submit">${exporting ? 'Chiffrer et exporter' : 'Déchiffrer et importer'}</button></div></form>`);
 }
 async function submitBackup(form) {

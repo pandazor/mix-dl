@@ -1,3 +1,24 @@
+# Vérifications de dl-manager 0.3.1
+
+Validation du 9 novembre 2026, Windows x64.
+
+- Suite Windows : **49 tests réussis, aucun ignoré**, avec DPAPI réel et téléchargement local gallery-dl.
+- Régressions reproduites avant correction : global perdu à la navigation sans bouton de sauvegarde ; export refusé avec téléchargement actif.
+- Route partielle de destination : préservation des réglages et dossiers propres aux sites, refus des chemins relatifs/vides, héritage de la nouvelle destination.
+- Export chiffré testé avec un worker actif, après sa pause individuelle alors que la file reste active, et avec une modification de compte concurrente. Le fichier déchiffré contient un instantané cohérent et l'export ne change ni la file ni les réglages.
+- Revue indépendante ciblée des extraits modifiés : aucun défaut critique ou important relevé. L’accès direct du réviseur aux fichiers a bloqué ; cette revue ne vaut pas inspection indépendante des tests, des archives ou du fonctionnement natif.
+- Interface Chrome réelle, profil/base temporaires : navigation immédiate après saisie du global, case d'héritage et chemin effectif, dossier personnalisé conservé, nouvelle tâche Instagram héritée, export avec file active, pause depuis le dialogue d'import, import sans reprise automatique, chemin invalide signalé sans perte de l'ancien réglage, chemin retourné par le sélecteur enregistré automatiquement (seul le sélecteur OS est simulé). Capture de l’héritage inspectée à 840 × 620. Aucune erreur JavaScript.
+- TypeScript compilé ; go vet Windows et Linux (purego) réussis ; exécutables Windows x64 et Linux x64 compilés. Tests Linux compilés, non exécutés sur cet hôte Windows.
+- Instagram : l'utilisateur confirme sur 0.3.0 la lecture du fichier cookies et le téléchargement des images. Rule34 : retours positifs également. Aucun téléchargement réel sur ces comptes n'a été effectué par les tests de 0.3.1.
+
+## Limites 0.3.1
+
+La croix Windows appelle désormais Quitter au lieu de masquer la fenêtre. Son test natif isolé n'a pas pu conclure dans la session d'automatisation : WebView2 ne termine pas la navigation initiale. Une première fermeture trop précoce avait interrompu la création du contrôleur (80004004) ; elle ne valide pas le comportement de fermeture. Le script attend maintenant le chargement initial. **Le clic sur la croix, les sélecteurs natifs et le lancement/trousseau Linux restent à confirmer dans les sessions graphiques normales.**
+
+L'export ne nécessite plus de pause. L'import de sauvegarde exige toujours la pause de la file entière et la fin des tâches actives ; le dialogue permet de déclencher cette pause. Les chemins propres aux sites déjà enregistrés et les destinations des tâches commencées sont conservés. Aucun fichier n'est déplacé.
+
+---
+
 # Vérifications de dl-manager 0.3.0
 
 Validation du 9 novembre 2026, Windows x64.

@@ -80,7 +80,7 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			e = err
 			break
 		}
-		reply(w, map[string]any{"state": state, "sites": platform.Sites, "dataDir": a.DataDir, "version": "0.3.0", "platform": runtime.GOOS})
+		reply(w, map[string]any{"state": state, "sites": platform.Sites, "dataDir": a.DataDir, "version": "0.3.1", "platform": runtime.GOOS})
 		return
 	case "GET /api/profile":
 		e = a.profileDetails(w, r)
@@ -120,6 +120,13 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		e = a.importBackup(w, r)
 		if e == nil {
 			return
+		}
+	case "POST /api/settings/destination":
+		var req struct {
+			Destination string `json:"destination"`
+		}
+		if e = decode(w, r, &req); e == nil {
+			e = a.Manager.SaveDestination(req.Destination)
 		}
 	case "POST /api/settings":
 		var v model.Settings
