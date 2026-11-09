@@ -8,7 +8,8 @@ import (
 
 func TestProfileMutationPreventsConcurrentDispatch(t *testing.T) {
 	r := &testRunner{started: make(chan model.Job, 4)}
-	m, _ := setup(t, r)
+	m, s := setup(t, r)
+	s.PutProfile(model.Profile{ID: "profile", Site: "generic"})
 	guard, ok := any(m).(interface {
 		WithProfileMutation(string, func() error) error
 	})

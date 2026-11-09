@@ -32,8 +32,8 @@ func TestWindowsPathStripPreservesOrdinaryNameSuffixes(t *testing.T) {
 }
 
 func TestDirectLinksWithSameBasenameBothDownload(t *testing.T) {
-	tools, _ := filepath.Abs("../../tools")
-	if _, err := os.Stat(filepath.Join(tools, "gallery-dl.exe")); err != nil {
+	tools := integrationTools()
+	if _, err := os.Stat(filepath.Join(tools, executableName("gallery-dl"))); err != nil {
 		t.Skip("bundled engine absent")
 	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

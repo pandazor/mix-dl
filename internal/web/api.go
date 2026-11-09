@@ -1,7 +1,6 @@
 package web
 
 import (
-	"dl-manager/internal/auth"
 	"dl-manager/internal/downloader"
 	"dl-manager/internal/model"
 	"dl-manager/internal/platform"
@@ -9,18 +8,23 @@ import (
 	"dl-manager/internal/storage"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
+
+type CredentialVault interface {
+	Save(string, []byte) error
+	Load(string) ([]byte, error)
+	Delete(string) error
+}
 
 type API struct {
 	Store    *storage.Store
 	Manager  *queue.Manager
-	Vault    *auth.Vault
+	Vault    CredentialVault
 	DataDir  string
 	ToolsDir string
 	Token    string
@@ -30,7 +34,7 @@ type API struct {
 	OpenURL  func(string) error
 }
 
-func New(s *storage.Store, m *queue.Manager, v *auth.Vault, data, tools string) *API {
+func New(s *storage.Store, m *queue.Manager, v CredentialVault, data, tools string) *API {
 	return &API{Store: s, Manager: m, Vault: v, DataDir: data, ToolsDir: tools, Token: model.ID()}
 }
 func reply(w http.ResponseWriter, v any) {
@@ -74,8 +78,13 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			e = err
 			break
 		}
-		reply(w, map[string]any{"state": state, "sites": platform.Sites, "dataDir": a.DataDir, "version": "0.1.0"})
+		reply(w, map[string]any{"state": state, "sites": platform.Sites, "dataDir": a.DataDir, "version": "0.2.0", "platform": runtime.GOOS})
 		return
+	case "GET /api/profile":
+		e = a.profileDetails(w, r)
+		if e == nil {
+			return
+		}
 	case "GET /api/logs":
 		v, err := a.Store.Logs(r.URL.Query().Get("id"))
 		if err != nil {
@@ -168,7 +177,12 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if req.Filters != nil {
 				filters = *req.Filters
 			}
+			profileMode := "inherit"
 			if req.ProfileID != nil {
+				profileMode = "explicit"
+				if *req.ProfileID == "" {
+					profileMode = "none"
+				}
 				profile = *req.ProfileID
 			}
 			if profile != "" {
@@ -183,7 +197,7 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					continue
 				}
 			}
-			j := model.Job{URL: raw, Site: site, Destination: dest, Layout: layout, Filename: filename, Filters: filters, ProfileID: profile}
+			j := model.Job{URL: raw, Site: site, Destination: dest, Layout: layout, Filename: filename, Filters: filters, ProfileID: profile, ProfileMode: profileMode}
 			if err = a.Manager.Add(j); err != nil {
 				problems = append(problems, err.Error())
 			} else {
@@ -192,6 +206,15 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		reply(w, map[string]any{"added": added, "errors": problems})
 		return
+	case "POST /api/job/profile":
+		var req struct {
+			ID        string `json:"id"`
+			Mode      string `json:"mode"`
+			ProfileID string `json:"profileId"`
+		}
+		if e = decode(w, r, &req); e == nil {
+			e = a.Manager.SetJobProfile(req.ID, req.Mode, req.ProfileID)
+		}
 	case "POST /api/job":
 		var req struct {
 			ID     string `json:"id"`
@@ -260,7 +283,7 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		if a.Pick == nil {
-			e = errors.New("Sélection native disponible dans l'application Windows")
+			e = errors.New("Sélection native disponible dans l'application")
 			break
 		}
 		var path string
@@ -296,92 +319,6 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	reply(w, map[string]bool{"ok": true})
-}
-func (a *API) saveProfile(w http.ResponseWriter, r *http.Request) error {
-	var req struct {
-		ID          string `json:"id"`
-		Name        string `json:"name"`
-		Site        string `json:"site"`
-		Method      string `json:"method"`
-		UserID      string `json:"userId"`
-		Token       string `json:"token"`
-		TokenSecret string `json:"tokenSecret"`
-		CookiePath  string `json:"cookiePath"`
-	}
-	if e := decode(w, r, &req); e != nil {
-		return e
-	}
-	if strings.TrimSpace(req.Name) == "" || len(req.Name) > 100 {
-		return errors.New("Nom de compte obligatoire, 100 caractères maximum")
-	}
-	site := platform.Get(req.Site)
-	if site.ID != req.Site {
-		return errors.New("Site inconnu")
-	}
-	methodOK := false
-	for _, m := range site.Methods {
-		if m == req.Method {
-			methodOK = true
-		}
-	}
-	if !methodOK {
-		return errors.New("Méthode de connexion incompatible avec ce site")
-	}
-	if req.ID == "" {
-		req.ID = model.ID()
-	}
-	if a.Manager.ProfileBusy(req.ID) {
-		return errors.New("Mettez en pause les tâches utilisant ce compte")
-	}
-	c := downloader.Credentials{Method: req.Method, UserID: strings.TrimSpace(req.UserID), Token: strings.TrimSpace(req.Token), TokenSecret: strings.TrimSpace(req.TokenSecret)}
-	if c.Method == "cookies" {
-		if req.CookiePath == "" {
-			return errors.New("Sélectionnez un fichier cookies.txt")
-		}
-		f, e := os.Open(req.CookiePath)
-		if e != nil {
-			return errors.New("Fichier de cookies inaccessible")
-		}
-		defer f.Close()
-		b, e := io.ReadAll(io.LimitReader(f, 10*1024*1024+1))
-		if e != nil {
-			return e
-		}
-		c.Cookies = string(b)
-		if e = auth.ValidateCookies(c.Cookies, req.Site); e != nil {
-			return e
-		}
-	} else {
-		if c.Token == "" || len(c.Token) > 16384 {
-			return errors.New("Token manquant ou trop long")
-		}
-		if c.Method == "api" {
-			for _, ch := range c.UserID {
-				if ch < '0' || ch > '9' {
-					return errors.New("User ID doit être numérique")
-				}
-			}
-			if c.UserID == "" {
-				return errors.New("User ID obligatoire")
-			}
-		}
-		if c.Method == "oauth1" && c.TokenSecret == "" {
-			return errors.New("OAuth Token Secret obligatoire")
-		}
-	}
-	payload, e := json.Marshal(c)
-	if e != nil {
-		return e
-	}
-	return a.Manager.WithProfileMutation(req.ID, func() error {
-		if err := a.Vault.Save(req.ID, payload); err != nil {
-			return fmt.Errorf("Chiffrement Windows indisponible : le compte n'a pas été enregistré. Lancez l'application dans votre session Windows habituelle. (%v)", err)
-		}
-		if err := a.Vault.Delete(req.ID + "-cache"); err != nil {
-			return err
-		}
-		return a.Store.PutProfile(model.Profile{ID: req.ID, Name: req.Name, Site: req.Site, Method: req.Method, State: "configured"})
-	})
 }
 func (a *API) Assets(files http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

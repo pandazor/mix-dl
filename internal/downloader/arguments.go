@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -51,7 +52,14 @@ func BuildInvocation(j model.Job, s model.Settings, c Credentials, temp, archive
 			path = filepath.Join(path, "youtube", "%(uploader_id,uploader,channel_id|inconnu)s")
 		}
 		output := filepath.Join(path, "%(id)s_%(title).120B.%(ext)s")
-		inv.Args = []string{"--ignore-config", "--no-colors", "--newline", "--no-playlist", "--yes-playlist", "--continue", "--no-overwrites", "--windows-filenames", "--download-archive", archive, "--output", output, "--progress", "--progress-template", "download:DLM_YT:%(progress.filename)j\t%(progress.downloaded_bytes)s", "--print", "before_dl:DLM_BEGIN:%(filename)j", "--print", "after_move:DLM_END:%(filepath)j", "--no-simulate", "--socket-timeout", "30", "--retries", "3", "--fragment-retries", "3", "--ffmpeg-location", toolsDir, "--js-runtimes", "deno:" + filepath.Join(toolsDir, "deno.exe")}
+		inv.Args = []string{"--ignore-config", "--no-colors", "--newline", "--no-playlist", "--yes-playlist", "--continue", "--no-overwrites", "--windows-filenames", "--download-archive", archive, "--output", output, "--progress", "--progress-template", "download:DLM_YT:%(progress.filename)j\t%(progress.downloaded_bytes)s", "--print", "before_dl:DLM_BEGIN:%(filename)j", "--print", "after_move:DLM_END:%(filepath)j", "--no-simulate", "--socket-timeout", "30", "--retries", "3", "--fragment-retries", "3"}
+		if ffmpeg, err := os.Stat(filepath.Join(toolsDir, executableName("ffmpeg"))); err == nil && ffmpeg.Mode().IsRegular() {
+			inv.Args = append(inv.Args, "--ffmpeg-location", toolsDir)
+		}
+		deno := filepath.Join(toolsDir, executableName("deno"))
+		if info, err := os.Stat(deno); err == nil && info.Mode().IsRegular() {
+			inv.Args = append(inv.Args, "--js-runtimes", "deno:"+deno)
+		}
 		formats := []string{}
 		for _, e := range allowed {
 			if e == "mp4" {

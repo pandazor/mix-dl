@@ -93,6 +93,59 @@ func (s *Store) PutProfile(v model.Profile) error {
 	_, e = s.db.Exec("INSERT INTO profiles VALUES(?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data", v.ID, b)
 	return e
 }
+
+// PutProfileWithDefault commits account metadata and its default selection together.
+func (s *Store) PutProfileWithDefault(v model.Profile, makeDefault bool) error {
+	if makeDefault {
+		return s.PutProfileSelection(v, &makeDefault)
+	}
+	return s.PutProfileSelection(v, nil)
+}
+
+// A nil selection preserves the default; false clears only this account's selection.
+func (s *Store) PutProfileSelection(v model.Profile, selection *bool) error {
+	tx, e := s.db.Begin()
+	if e != nil {
+		return e
+	}
+	defer tx.Rollback()
+	raw, e := encode(v)
+	if e != nil {
+		return e
+	}
+	if _, e = tx.Exec("INSERT INTO profiles VALUES(?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data", v.ID, raw); e != nil {
+		return e
+	}
+	if selection != nil {
+		cfg := model.DefaultSettings()
+		e = tx.QueryRow("SELECT value FROM kv WHERE key='settings'").Scan(&raw)
+		if e == nil {
+			if e = json.Unmarshal([]byte(raw), &cfg); e != nil {
+				return e
+			}
+		} else if !errors.Is(e, sql.ErrNoRows) {
+			return e
+		}
+		if cfg.Sites == nil {
+			cfg.Sites = map[string]model.SiteSettings{}
+		}
+		site := cfg.Sites[v.Site]
+		if *selection {
+			site.ProfileID = v.ID
+		} else if site.ProfileID == v.ID {
+			site.ProfileID = ""
+		}
+		cfg.Sites[v.Site] = site
+		raw, e = encode(cfg)
+		if e != nil {
+			return e
+		}
+		if _, e = tx.Exec("INSERT INTO kv VALUES('settings',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", raw); e != nil {
+			return e
+		}
+	}
+	return tx.Commit()
+}
 func (s *Store) DeleteProfile(id string) error {
 	tx, e := s.db.Begin()
 	if e != nil {

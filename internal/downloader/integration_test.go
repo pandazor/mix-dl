@@ -10,13 +10,22 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 )
 
+func integrationTools() string {
+	dir, _ := filepath.Abs("../../tools")
+	if runtime.GOOS == "linux" {
+		dir = filepath.Join(dir, "linux-x64")
+	}
+	return dir
+}
+
 func TestRealGalleryDownloadResumeAndArchive(t *testing.T) {
-	tools, _ := filepath.Abs("../../tools")
-	if _, e := os.Stat(filepath.Join(tools, "gallery-dl.exe")); e != nil {
+	tools := integrationTools()
+	if _, e := os.Stat(filepath.Join(tools, executableName("gallery-dl"))); e != nil {
 		t.Skip("run scripts/fetch-tools.py for engine integration")
 	}
 	payload := bytes.Repeat([]byte("test-only-image-content"), 6000)

@@ -91,6 +91,18 @@ func (m *Manager) dispatch() {
 		if _, ok := m.active[j.ID]; ok {
 			continue
 		}
+		j.ProfileMode = j.ProfileSelection()
+		profile, err := model.ResolveProfile(j, state)
+		if err != nil {
+			j.Status = "authentication_required"
+			j.Error = err.Error()
+			if e = m.store.PutJob(j); e != nil {
+				m.fail(e)
+				return
+			}
+			continue
+		}
+		j.ProfileID = profile
 		busy := false
 		key := resource(j)
 		for _, a := range m.active {
@@ -263,7 +275,7 @@ func (m *Manager) Start() error {
 		return errors.New("Limite atteinte : réinitialisez le compteur ou augmentez le quota")
 	}
 	for _, j := range s.Jobs {
-		if j.Status == "paused" || j.Status == "interrupted" || j.Status == "paused_quota" {
+		if j.Status == "paused" || j.Status == "interrupted" || j.Status == "paused_quota" || j.Status == "authentication_required" {
 			j.Status = "queued"
 			if e = m.store.PutJob(j); e != nil {
 				return e
@@ -333,6 +345,10 @@ func (m *Manager) Add(j model.Job) error {
 		if old.Order >= j.Order {
 			j.Order = old.Order + 1
 		}
+	}
+	j.ProfileMode = j.ProfileSelection()
+	if _, e := model.ResolveProfile(j, s); e != nil {
+		return e
 	}
 	if j.ID == "" {
 		j.ID = model.ID()

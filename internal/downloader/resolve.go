@@ -2,12 +2,13 @@ package downloader
 
 import (
 	"context"
+	"dl-manager/internal/process"
 	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -19,13 +20,18 @@ type Engine struct {
 	Error   string   `json:"error,omitempty"`
 }
 
+func executableName(name string) string {
+	if runtime.GOOS == "windows" {
+		return name + ".exe"
+	}
+	return name
+}
+
 func probe(name, path string, prefix []string) (Engine, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()
 	args := append(append([]string{}, prefix...), "--version")
-	cmd := exec.CommandContext(ctx, path, args...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-	out, e := cmd.CombinedOutput()
+	out, e := process.ProbeOutput(ctx, path, args...)
 	version := strings.TrimSpace(string(out))
 	if e != nil || version == "" {
 		return Engine{}, errors.New("Moteur inutilisable : " + path)
@@ -36,7 +42,7 @@ func Resolve(name, override, toolsDir string) (Engine, error) {
 	if override != "" {
 		return probe(name, override, nil)
 	}
-	managed := filepath.Join(toolsDir, name+".exe")
+	managed := filepath.Join(toolsDir, executableName(name))
 	if _, e := os.Stat(managed); e == nil {
 		return probe(name, managed, nil)
 	}
@@ -49,7 +55,11 @@ func Resolve(name, override, toolsDir string) (Engine, error) {
 	if name == "yt-dlp" {
 		module = "yt_dlp"
 	}
-	for _, interpreter := range []string{"py", "python"} {
+	interpreters := []string{"python3", "python"}
+	if runtime.GOOS == "windows" {
+		interpreters = []string{"py", "python"}
+	}
+	for _, interpreter := range interpreters {
 		if p, e := exec.LookPath(interpreter); e == nil {
 			if v, e := probe(name, p, []string{"-m", module}); e == nil {
 				return v, nil

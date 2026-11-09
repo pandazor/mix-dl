@@ -1,4 +1,48 @@
-# Vérifications de dl-manager 0.1.0
+# Vérifications de dl-manager 0.2.0
+
+Validation du 9 novembre 2026, hôte Windows x64.
+
+## Vérifié pour 0.2.0
+
+- TypeScript : compilation réussie. Exécutables Windows x64 et Linux x64 compilés.
+- Windows : `DLM_RESTRICTED_TESTS=1 go test -work -count=1 -v ./...` :
+  **34 tests réussis, 1 test DPAPI explicitement ignoré**. `go vet ./...` réussi.
+- Test du parcours signalé : ajout avant le compte, sauvegarde de l'ID/API key,
+  fermeture/réouverture SQLite, lancement de la tâche, puis vérification exacte
+  de `extractor.rule34.user-id` et `api-key` fournis au moteur. Identifiants fictifs.
+- Secrets conservés lors d'une modification avec champs vides ; réponses HTTP
+  limitées au User ID et aux indicateurs de présence. Erreur du coffre affichée,
+  jamais convertie en succès ou stockage en clair.
+- Héritage au lancement et à la reprise ; choix explicites conservés, exclusion
+  des comptes actifs. Case de compte par défaut testée dans les deux sens.
+- Interface contrôlée dans le navigateur avec un coffre de test : compte rouvert,
+  User ID visible, clé indiquée comme présente, renommage sans nouvelle clé,
+  bouton de reprise accessible après une erreur d'authentification.
+- Linux : compilation des tests et `go vet -tags purego ./...` réussis ; les tests
+  Linux n'ont pas été exécutés sur cet hôte Windows.
+- Moteurs Linux : téléchargements officiels épinglés, SHA-256 publiés vérifiés ;
+  inspection ELF x86-64/glibc. Archive Linux de contrôle : SHA-256 et modes 0755 vérifiés.
+- Revue indépendante : problèmes de reprise, case par défaut, fins de ligne du
+  script Linux et environnement PowerShell corrigés.
+- Script de transfert : clonage du bundle et push non forcé vérifiés contre un
+  dépôt local isolé. Le dépôt GitHub utilisateur n'a pas été modifié.
+- Workflow GitHub Windows/Linux linté ; aucun run distant effectué avant push.
+
+## Limites de cette validation
+
+Le test DPAPI est ignoré car le profil isolé du terminal ne charge pas le coffre
+Windows (même échec reproduit avec .NET). Le stockage réel doit être confirmé dans
+la session Windows normale. Le formulaire de test utilise des secrets fictifs et
+un coffre en mémoire ; il ne prétend pas valider votre connexion Rule34 réelle.
+
+Le bureau Linux, le trousseau Secret Service réel et l'arrêt de processus Linux
+restent à valider sur Linux. Le backend graphique Wails purego est expérimental.
+Les tests Linux et Windows s'exécuteront aussi via le workflow après le push.
+Les autres limites de la version précédente ci-dessous restent applicables.
+
+## Historique de validation 0.1.0
+
+### Vérifications de dl-manager 0.1.0
 
 Validation du 9 novembre 2026, Windows 10 x64.
 

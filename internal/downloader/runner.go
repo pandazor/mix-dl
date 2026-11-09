@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -49,7 +50,7 @@ func (r *Runner) Run(ctx context.Context, j model.Job, emit func(model.Event)) (
 	if j.ProfileID != "" {
 		payload, e := r.Vault.Load(j.ProfileID)
 		if e != nil {
-			return &DownloadError{"authentication", "Impossible de lire le compte : reconfigurez-le dans Comptes"}
+			return &DownloadError{"authentication", "Impossible de lire le compte : " + e.Error()}
 		}
 		if e = json.Unmarshal(payload, &creds); e != nil {
 			return e
@@ -110,7 +111,11 @@ func (r *Runner) Run(ctx context.Context, j model.Job, emit func(model.Event)) (
 			}
 		}
 	}()
-	hash := sha256.Sum256([]byte(strings.ToLower(filepath.Clean(j.Destination)) + "|" + j.Site))
+	archiveDestination := filepath.Clean(j.Destination)
+	if runtime.GOOS == "windows" {
+		archiveDestination = strings.ToLower(archiveDestination)
+	}
+	hash := sha256.Sum256([]byte(archiveDestination + "|" + j.Site))
 	archiveDir := filepath.Join(r.DataDir, "archives")
 	if e = os.MkdirAll(archiveDir, 0700); e != nil {
 		return e

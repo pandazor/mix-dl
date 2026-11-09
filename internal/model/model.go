@@ -37,6 +37,7 @@ type Settings struct {
 	Sites       map[string]SiteSettings `json:"sites"`
 }
 type Job struct {
+	ProfileMode string  `json:"profileMode"`
 	ID          string  `json:"id"`
 	URL         string  `json:"url"`
 	Site        string  `json:"site"`
@@ -78,6 +79,41 @@ type Event struct {
 	Message  string
 	Bytes    int64
 	ExitCode int
+}
+
+// ProfileSelection handles pre-0.2 jobs, which did not record inheritance separately.
+func (j Job) ProfileSelection() string {
+	if j.ProfileMode != "" {
+		return j.ProfileMode
+	}
+	if j.ProfileID != "" {
+		return "explicit"
+	}
+	return "inherit"
+}
+func ResolveProfile(j Job, s Snapshot) (string, error) {
+	id := j.ProfileID
+	switch j.ProfileSelection() {
+	case "inherit":
+		id = s.Settings.Sites[j.Site].ProfileID
+	case "none":
+		return "", nil
+	case "explicit":
+		if id == "" {
+			return "", errors.New("Choisissez un compte")
+		}
+	default:
+		return "", errors.New("Sélection de compte invalide")
+	}
+	if id == "" {
+		return "", nil
+	}
+	for _, p := range s.Profiles {
+		if p.ID == id && (p.Site == j.Site || p.Site == "generic") {
+			return id, nil
+		}
+	}
+	return "", errors.New("Compte introuvable ou incompatible : choisissez un compte dans les détails de la tâche")
 }
 
 func ID() string {

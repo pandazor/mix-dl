@@ -1,7 +1,11 @@
 {
   "name": "dl-manager",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "scripts": {"check": "tsc --noEmit -p frontend/tsconfig.json"},
-  "devDependencies": {"typescript": "7.0.2"}
+  "scripts": {
+    "check": "tsc --noEmit -p frontend/tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
 }

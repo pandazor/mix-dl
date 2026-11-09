@@ -7,7 +7,7 @@ let data;
 let page = 'downloads';
 let search = '';
 let modalJob = '';
-let loading = false;
+let loading = null;
 let toastTimer;
 async function api(path, body) { const r = await fetch('/api/' + path, { method: body === undefined ? 'GET' : 'POST', headers: body === undefined ? {} : { 'Content-Type': 'application/json', 'X-DL-Token': token }, body: body === undefined ? undefined : JSON.stringify(body) }); const v = await r.json(); if (!r.ok)
     throw Error(v.error || `Erreur ${r.status}`); return v; }
@@ -28,21 +28,21 @@ const filenames = [['default', 'Nommage du site (identifiants inclus)'], ['id-ti
 function extensions(prefix, f) { return `<div class="row wrap"><label class="check"><input id="${prefix}-images" type="checkbox" ${f.images ? 'checked' : ''}>Images</label><label class="check"><input id="${prefix}-videos" type="checkbox" ${f.videos ? 'checked' : ''}>Vidéos</label></div><div class="extensions">${['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'webm', 'mov', 'avi', 'mkv'].map(x => `<label class="extension"><input class="${prefix}-extension" type="checkbox" value="${x}" ${f.extensions.includes(x) ? 'checked' : ''}>${x}</label>`).join('')}</div><label>Extensions supplémentaires (séparées par des virgules)<input id="${prefix}-custom" value="${esc(f.extensions.filter(x => !['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'webm', 'mov', 'avi', 'mkv'].includes(x)).join(', '))}" placeholder="avif, bmp…"></label>`; }
 function readFilters(prefix) { return { images: check(prefix + '-images'), videos: check(prefix + '-videos'), extensions: [...new Set([...Array.from(document.querySelectorAll('.' + prefix + '-extension:checked')).map(x => x.value), ...val(prefix + '-custom').split(',').map(x => x.trim().toLowerCase().replace(/^\./, '')).filter(Boolean)])] }; }
 function pathInput(id, value, placeholder = 'Hériter du dossier global', kind = 'directory') { return `<div class="pathfield"><input id="${id}" value="${esc(value)}" placeholder="${esc(placeholder)}"><button type="button" data-pick="${id}" data-kind="${kind}" title="Parcourir">…</button></div>`; }
-async function load() { if (loading)
-    return; loading = true; try {
-    data = await api('state');
-    if (!$('#main'))
-        shell();
-    updateChrome();
-    if (page === 'downloads' || page === 'history')
-        updateJobs();
-    if (modalJob)
-        await refreshLog();
+async function load(fresh = false) { if (loading) {
+    await loading;
+    if (fresh)
+        return load(true);
+    return;
+} loading = (async () => { data = await api('state'); if (!$('#main'))
+    shell(); updateChrome(); if (page === 'downloads' || page === 'history')
+    updateJobs(); if (modalJob)
+    await refreshLog(); })(); try {
+    await loading;
 }
 finally {
-    loading = false;
+    loading = null;
 } }
-function shell() { $('#app').innerHTML = `<div class="layout"><aside class="sidebar"><div class="brand"><span class="logo">↓</span><span class="brand-text">dl-manager</span></div><nav class="nav" aria-label="Navigation principale">${[['downloads', '↓', 'Téléchargements'], ['history', '◷', 'Historique'], ['accounts', '♙', 'Comptes & sites'], ['settings', '⚙', 'Paramètres']].map(([id, icon, label]) => `<button data-page="${id}" class="${page === id ? 'active' : ''}"><span class="nav-icon">${icon}</span><span class="nav-label">${label}</span></button>`).join('')}</nav><div class="side-bottom"><div>VOTRE FILE, À VOTRE RYTHME</div><div id="side-state">En pause</div><button id="hide-app">Réduire en arrière-plan</button><button class="ghost" id="quit-app">Quitter l'application</button><div class="section-gap">Version ${esc(data.version)} · Windows</div></div></aside><main class="main" id="main"></main></div>`; renderPage(); }
+function shell() { $('#app').innerHTML = `<div class="layout"><aside class="sidebar"><div class="brand"><span class="logo">↓</span><span class="brand-text">dl-manager</span></div><nav class="nav" aria-label="Navigation principale">${[['downloads', '↓', 'Téléchargements'], ['history', '◷', 'Historique'], ['accounts', '♙', 'Comptes & sites'], ['settings', '⚙', 'Paramètres']].map(([id, icon, label]) => `<button data-page="${id}" class="${page === id ? 'active' : ''}"><span class="nav-icon">${icon}</span><span class="nav-label">${label}</span></button>`).join('')}</nav><div class="side-bottom"><div>VOTRE FILE, À VOTRE RYTHME</div><div id="side-state">En pause</div><button id="hide-app">Réduire en arrière-plan</button><button class="ghost" id="quit-app">Quitter l'application</button><div class="section-gap">Version ${esc(data.version)} · ${data.platform === 'linux' ? 'Linux' : 'Windows'}</div></div></aside><main class="main" id="main"></main></div>`; renderPage(); }
 function header(title, sub, actions = '') { return `<header class="page-head"><div><div class="eyebrow">DL-MANAGER / ${page === 'downloads' ? 'FILE D’ATTENTE' : page === 'history' ? 'BIBLIOTHÈQUE' : page === 'accounts' ? 'CONNEXIONS' : 'PRÉFÉRENCES'}</div><h1>${title}</h1><p>${sub}</p></div><div class="head-actions">${actions}</div></header>`; }
 function renderPage() { document.querySelectorAll('[data-page]').forEach(x => x.classList.toggle('active', x.dataset.page === page)); if (page === 'downloads')
     renderDownloads();
@@ -57,7 +57,7 @@ function renderHistory() { $('#main').innerHTML = header('Historique', 'Retrouve
 function updateChrome() { if (!data)
     return; const s = data.state; const el = $('#side-state'); if (el)
     el.textContent = s.running ? `${s.active} tâche(s) en cours` : s.active > 0 ? 'Arrêt en cours…' : 'En pause · reprise manuelle'; const start = $('#start-all'); if (start)
-    start.disabled = s.running || s.active > 0 || !s.jobs.some(j => ['queued', 'paused', 'interrupted', 'paused_quota'].includes(j.status)); const pause = $('#pause-all'); if (pause)
+    start.disabled = s.active > 0 || !s.jobs.some(j => ['queued', 'paused', 'interrupted', 'paused_quota', 'authentication_required'].includes(j.status)); const pause = $('#pause-all'); if (pause)
     pause.disabled = !s.running && s.active === 0; }
 function updateJobs() {
     if (!$('#job-table'))
@@ -77,20 +77,64 @@ function updateJobs() {
         $('#queue-notice').innerHTML = s.lastError ? `<div class="notice">${esc(s.lastError)}</div>` : limit && s.usedBytes >= limit ? '<div class="notice">Limite de volume atteinte. Réinitialisez le compteur ou augmentez la limite, puis cliquez sur Reprendre.</div>' : !s.settings.destination ? '<div class="notice">Choisissez votre dossier global dans Paramètres, ou une destination dans les options de téléchargement.</div>' : '';
     }
 }
-function renderAccounts() { $('#main').innerHTML = header('Comptes & sites', 'Réglez une fois la destination et la connexion de chaque plateforme.') + `<div class="site-grid">${data.sites.map(s => { const n = data.state.profiles.filter(p => p.site === s.id).length; return `<button class="site-card" data-site="${s.id}"><span class="site-icon">${esc(s.name.slice(0, 2))}</span><span><h3>${esc(s.name)}</h3><p>${n ? n + ' compte(s) enregistré(s)' : 'Public ou à configurer'}</p></span></button>`; }).join('')}</div><section class="panel section-gap"><h2>Vos comptes</h2>${data.state.profiles.length ? data.state.profiles.map(p => `<div class="profile-row"><div><h3>${esc(p.name)}</h3><p class="muted smalltext">${esc(siteName(p.site))} · ${esc(p.method)} · ${p.state === 'authentication_required' ? 'Connexion à renouveler' : 'Configuré'}</p></div><div class="row"><button class="small" data-profile-check="${p.id}">Vérifier le stockage</button><button class="small" data-profile-edit="${p.id}">Modifier</button><button class="small danger" data-profile-delete="${p.id}">Supprimer</button></div></div>`).join('') : '<p class="muted section-gap">Aucun compte enregistré. Les sites publics restent accessibles sans compte.</p>'}<p class="footer-note">Les connexions se font dans votre navigateur. Les secrets importés sont chiffrés pour votre session Windows. Sur un autre PC, configurez à nouveau vos comptes.</p></section>`; }
-function openSite(id, profile) { const site = data.sites.find(x => x.id === id); const s = data.state.settings.sites[id] || { destination: '', layout: '', filename: '', profileId: '' }; const method = profile?.method || site.methods[0]; showModal(`<div class="modal-head"><h2>${esc(site.name)}</h2><button data-close>×</button></div><form id="site-form" data-site-id="${id}"><h3>Destination et classement</h3><div class="form-grid"><label class="full">Dossier propre à ce site${pathInput('site-dest', s.destination || '')}</label><label>Organisation<select id="site-layout">${opts([['', 'Hériter du réglage global'], ...layouts], s.layout || '')}</select></label><label>Nommage des fichiers<select id="site-filename">${opts([['', 'Hériter du réglage global'], ...filenames], s.filename || '')}</select></label><label class="full">Compte par défaut<select id="site-default">${opts([['', 'Sans compte'], ...data.state.profiles.filter(p => p.site === id).map(p => [p.id, p.name])], s.profileId || '')}</select></label><div class="full"><label class="check"><input type="checkbox" id="site-media-override" ${s.filters ? 'checked' : ''}>Filtres propres à ce site</label><div class="section-gap" id="site-filter-options">${extensions('site', s.filters || data.state.settings.filters)}</div></div></div><div class="settings-footer"><button class="primary">Enregistrer les réglages du site</button></div></form><div class="guide">${esc(site.guide)}<br><button class="small ghost" type="button" data-help="${id}" style="margin-top:10px">Ouvrir le site / la documentation ↗</button></div><form id="profile-form" data-site-id="${id}" data-profile-id="${profile?.id || ''}"><h3>${profile ? 'Remplacer la connexion de ' + esc(profile.name) : 'Ajouter un compte'}</h3><div class="form-grid"><label>Nom du compte<input id="profile-name" required value="${esc(profile?.name || 'Principal')}"></label><label>Méthode<select id="profile-method">${opts(site.methods.map(m => [m, { api: 'User ID + API Key', cookies: 'Fichier cookies.txt', token: 'Refresh token', oauth1: 'OAuth Token + Secret' }[m] || m]), method)}</select></label><label class="full" id="cookie-field">Fichier cookies.txt (Netscape)${pathInput('profile-cookie', '', 'Sélectionner le fichier exporté', 'cookies')}</label><label id="userid-field">User ID<input id="profile-user" inputmode="numeric" autocomplete="off"></label><label id="token-field">Token / API Key<input id="profile-token" type="password" autocomplete="new-password"></label><label id="secret-field">OAuth Token Secret<input id="profile-secret" type="password" autocomplete="new-password"></label></div><p class="footer-note">L'import crée une copie chiffrée. Le fichier d'export d'origine reste sous votre contrôle. Une modification de compte demande de fournir à nouveau le secret.</p><div class="settings-footer"><button class="primary">${profile ? 'Remplacer le compte' : 'Enregistrer le compte'}</button></div></form>`); toggleMethod(); $('#site-filter-options').classList.toggle('hidden', !s.filters); }
+function renderAccounts() { $('#main').innerHTML = header('Comptes & sites', 'Réglez une fois la destination et la connexion de chaque plateforme.') + `<div class="site-grid">${data.sites.map(s => { const n = data.state.profiles.filter(p => p.site === s.id).length; return `<button class="site-card" data-site="${s.id}"><span class="site-icon">${esc(s.name.slice(0, 2))}</span><span><h3>${esc(s.name)}</h3><p>${n ? n + ' compte(s) enregistré(s)' : 'Public ou à configurer'}</p></span></button>`; }).join('')}</div><section class="panel section-gap"><h2>Vos comptes</h2>${data.state.profiles.length ? data.state.profiles.map(p => `<div class="profile-row"><div><h3>${esc(p.name)}</h3><p class="muted smalltext">${esc(siteName(p.site))} · ${esc(p.method)} · ${p.state === 'authentication_required' ? 'Connexion à renouveler' : 'Configuré'}</p></div><div class="row"><button class="small" data-profile-check="${p.id}">Vérifier le stockage</button><button class="small" data-profile-edit="${p.id}">Modifier</button><button class="small danger" data-profile-delete="${p.id}">Supprimer</button></div></div>`).join('') : '<p class="muted section-gap">Aucun compte enregistré. Les sites publics restent accessibles sans compte.</p>'}<p class="footer-note">Les connexions se font dans votre navigateur. Les secrets importés sont protégés par le coffre de votre session. Sur un autre PC, configurez à nouveau vos comptes.</p></section>`; }
+async function openSite(id, profile) {
+    const site = data.sites.find(x => x.id === id);
+    const s = data.state.settings.sites[id] || { destination: '', layout: '', filename: '', profileId: '' };
+    const profiles = data.state.profiles.filter(p => p.site === id);
+    const selected = profile?.id || s.profileId || profiles[0]?.id || '';
+    showModal(`<div class="modal-head"><h2>${esc(site.name)}</h2><button data-close>×</button></div>
+ <form id="site-form" data-site-id="${id}"><h3>Destination et classement</h3><div class="form-grid">
+ <label class="full">Dossier propre à ce site${pathInput('site-dest', s.destination || '')}</label>
+ <label>Organisation<select id="site-layout">${opts([['', 'Hériter du réglage global'], ...layouts], s.layout || '')}</select></label>
+ <label>Nommage des fichiers<select id="site-filename">${opts([['', 'Hériter du réglage global'], ...filenames], s.filename || '')}</select></label>
+ <label class="full">Compte par défaut pour les tâches héritées<select id="site-default">${opts([['', 'Sans compte'], ...profiles.map(p => [p.id, p.name])], s.profileId || '')}</select></label>
+ <div class="full"><label class="check"><input type="checkbox" id="site-media-override" ${s.filters ? 'checked' : ''}>Filtres propres à ce site</label><div class="section-gap" id="site-filter-options">${extensions('site', s.filters || data.state.settings.filters)}</div></div></div>
+ <div class="settings-footer"><button class="primary">Enregistrer les réglages du site</button></div></form>
+ <div class="guide">${esc(site.guide)}<br><button class="small ghost" type="button" data-help="${id}" style="margin-top:10px">Ouvrir le site / la documentation ↗</button></div>
+ <label>Compte à consulter ou modifier<select id="profile-select" data-site-id="${id}">${opts([['', 'Ajouter un nouveau compte'], ...profiles.map(p => [p.id, p.name])], selected)}</select></label>
+ <div id="account-editor" class="section-gap"></div>`);
+    $('#site-filter-options').classList.toggle('hidden', !s.filters);
+    await showProfileEditor(id, selected);
+}
+async function showProfileEditor(siteId, id) {
+    const site = data.sites.find(x => x.id === siteId);
+    const p = data.state.profiles.find(p => p.id === id);
+    $('#account-editor').textContent = 'Lecture du compte…';
+    const saved = p ? await api('profile?id=' + encodeURIComponent(id)) : {};
+    // Ignore responses for a modal/profile that has since been closed or replaced.
+    const selector = $('#profile-select');
+    if (!selector || selector.dataset.siteId !== siteId || selector.value !== id)
+        return;
+    const isDefault = data.state.settings.sites[siteId]?.profileId || '';
+    $('#account-editor').innerHTML = `<form id="profile-form" data-site-id="${siteId}" data-profile-id="${p?.id || ''}">
+ <h3>${p ? 'Modifier ' + esc(p.name) : 'Ajouter un compte'}</h3>
+ ${p ? '<p class="notice">Compte enregistré. Les champs secrets restent masqués ; laissez-les vides pour conserver leur valeur.</p>' : ''}
+ <div class="form-grid"><label>Nom du compte<input id="profile-name" required value="${esc(p?.name || 'Principal')}"></label>
+ <label>Méthode<select id="profile-method">${opts(site.methods.map(m => [m, { api: 'User ID + API Key', cookies: 'Fichier cookies.txt', token: 'Refresh token', oauth1: 'OAuth Token + Secret' }[m] || m]), p?.method || site.methods[0])}</select></label>
+ <label class="full" id="cookie-field">Fichier cookies.txt (Netscape)${pathInput('profile-cookie', '', saved.hasCookies ? 'Cookies enregistrés — laisser vide pour les conserver' : 'Sélectionner le fichier exporté', 'cookies')}</label>
+ <label id="userid-field">User ID<input id="profile-user" value="${esc(saved.userId || '')}" inputmode="numeric" autocomplete="off"></label>
+ <label id="token-field">Token / API Key<input id="profile-token" type="password" autocomplete="new-password" placeholder="${saved.hasToken ? 'Clé enregistrée — laisser vide pour la conserver' : 'Saisir la clé'}"></label>
+ <label id="secret-field">OAuth Token Secret<input id="profile-secret" type="password" autocomplete="new-password" placeholder="${saved.hasTokenSecret ? 'Secret enregistré — laisser vide pour le conserver' : 'Saisir le secret'}"></label>
+ <label class="full check"><input type="checkbox" id="profile-default" ${(p ? isDefault === id : !isDefault) ? 'checked' : ''}>Utiliser ce compte par défaut pour ce site</label></div>
+ <p class="footer-note">Le compte par défaut s'applique aussi aux tâches existantes réglées sur « Compte par défaut du site ». Un changement de méthode demande les nouveaux identifiants.</p>
+ <div class="settings-footer"><button class="primary">Enregistrer le compte</button></div></form>`;
+    toggleMethod();
+}
+function jobProfileMode(j) { return j.profileMode || (j.profileId ? 'explicit' : 'inherit'); }
+function jobProfileLabel(j) { const mode = jobProfileMode(j); const id = mode === 'inherit' ? data.state.settings.sites[j.site]?.profileId : j.profileId; const p = data.state.profiles.find(x => x.id === id); return mode === 'none' ? 'Sans compte' : (mode === 'inherit' ? 'Par défaut : ' : '') + (p?.name || 'Sans compte'); }
 function toggleMethod() { const m = val('profile-method'); $('#cookie-field').classList.toggle('hidden', m !== 'cookies'); $('#userid-field').classList.toggle('hidden', m !== 'api'); $('#token-field').classList.toggle('hidden', m === 'cookies'); $('#secret-field').classList.toggle('hidden', m !== 'oauth1'); }
 function renderSettings() { const s = data.state.settings; $('#main').innerHTML = header('Paramètres', 'Les valeurs globales s’appliquent aux prochains ajouts à la file.') + `<form id="settings-form"><section class="panel settings-panel"><h2>Destination & classement</h2><div class="form-grid"><label class="full">Dossier global de téléchargement${pathInput('global-dest', s.destination, 'Choisir un dossier')}</label><label>Organisation des dossiers<select id="global-layout">${opts(layouts, s.layout)}</select></label><label>Nommage des fichiers<select id="global-filename">${opts(filenames, s.filename)}</select></label><div class="full preview" id="path-preview"></div></div></section><section class="panel settings-panel"><h2>Rythme & limite de volume</h2><div class="form-grid"><label>Téléchargements simultanés<select id="concurrency">${opts([['1', '1 tâche'], ['2', '2 tâches'], ['3', '3 tâches']], String(s.concurrency))}</select></label><label>Débit par tâche (Kio/s, 0 = illimité)<input id="rate" type="number" min="0" value="${s.rateKiB}"></label><label>Pause après ce volume (Go, 0 = désactivé)<input id="quota" type="number" min="0" step="0.1" value="${s.quotaBytes / 1e9}"></label><div><label>Volume actuel</label><p class="section-gap">${bytes(data.state.usedBytes)} <button type="button" class="small" id="reset-quota">Réinitialiser</button></p></div></div><p class="footer-note">Le compteur est conservé au redémarrage. Le réinitialiser met les tâches en pause et attend votre clic pour reprendre. Un même site et dossier, ou un même compte, est traité par une seule tâche à la fois pour éviter les conflits.</p></section><section class="panel settings-panel"><h2>Médias par défaut</h2><div class="section-gap">${extensions('global', s.filters)}</div><p class="footer-note">Les extensions filtrent les fichiers disponibles à la source. Aucun transcodage automatique. Les extensions personnalisées inconnues sont classées comme images.</p></section><section class="panel settings-panel"><h2>Moteurs</h2><div id="engines" class="section-gap muted">Vérification des versions…</div><details><summary>Chemins personnalisés (facultatifs)</summary><div class="form-grid"><label class="full">gallery-dl${pathInput('gallery-path', s.galleryPath, 'Utiliser le moteur du paquet', 'engine')}</label><label class="full">yt-dlp${pathInput('ytdlp-path', s.ytdlpPath, 'Utiliser le moteur du paquet', 'engine')}</label></div></details><p class="footer-note">Données : <code>${esc(data.dataDir)}</code><br>Le paquet garde les outils dans tools/ et les données dans data/.</p><div class="settings-footer"><button class="primary">Enregistrer les paramètres</button></div></section></form>`; preview(); run(async () => { const es = await api('engines'); if (page === 'settings')
     $('#engines').innerHTML = es.map((e) => `<div class="engine"><span>${esc(e.name)}</span><span>${e.error ? `<span class="error">${esc(e.error)}</span>` : `<code>${esc(e.version)}</code>`}</span></div>`).join(''); }); }
 function preview() { if (!$('#path-preview'))
     return; let p = val('global-dest') || 'Destination'; const l = val('global-layout'); if (l === 'site' || l === 'creator')
-    p += '\\artstation'; if (l === 'creator')
-    p += '\\nom_artiste'; p += '\\identifiant_titre.jpg'; $('#path-preview').textContent = p; }
+    p += (data.platform === 'linux' ? '/' : '\\') + 'artstation'; if (l === 'creator')
+    p += (data.platform === 'linux' ? '/' : '\\') + 'nom_artiste'; p += (data.platform === 'linux' ? '/' : '\\') + 'identifiant_titre.jpg'; $('#path-preview').textContent = p; }
 function showModal(content) { modalJob = ''; $('#modal-content').innerHTML = content; const d = $('#modal'); if (!d.open)
     d.showModal(); }
 function closeModal() { modalJob = ''; $('#modal').close(); }
 async function openDetail(id) { const j = data.state.jobs.find(x => x.id === id); if (!j)
-    return; showModal(`<div class="modal-head"><h2>Détails du téléchargement</h2><button data-close>×</button></div><div class="detail-grid"><span>Source</span><span>${esc(j.url)}</span><span>Destination</span><span>${esc(j.destination)}</span><span>Ajout</span><span>${date(j.added)}</span><span>Dernier démarrage</span><span>${date(j.started)}</span><span>État</span><span>${esc(statuses[j.status])} · code ${j.exitCode}</span><span>Message</span><span class="error">${esc(j.error || '—')}</span></div><h3>Journal</h3><pre id="logs" class="logs section-gap">Chargement…</pre><div class="settings-footer"><button data-action="cancel" data-id="${j.id}" class="danger">Annuler cette tâche</button><button data-close>Fermer</button></div>`); modalJob = id; await refreshLog(); }
+    return; showModal(`<div class="modal-head"><h2>Détails du téléchargement</h2><button data-close>×</button></div><div class="detail-grid"><span>Source</span><span>${esc(j.url)}</span><span>Destination</span><span>${esc(j.destination)}</span><span>Compte</span><span>${esc(jobProfileLabel(j))}</span><span>Ajout</span><span>${date(j.added)}</span><span>Dernier démarrage</span><span>${date(j.started)}</span><span>État</span><span>${esc(statuses[j.status])} · code ${j.exitCode}</span><span>Message</span><span class="error">${esc(j.error || '—')}</span></div>${j.status !== 'running' ? `<form id="job-profile-form" data-job-id="${j.id}" class="section-gap"><label>Compte pour cette tâche<select id="detail-profile">${opts([['inherit', 'Compte par défaut du site'], ['', 'Sans compte'], ...data.state.profiles.filter(p => p.site === j.site || p.site === 'generic').map(p => [p.id, p.name])], jobProfileMode(j) === 'inherit' ? 'inherit' : jobProfileMode(j) === 'none' ? '' : j.profileId)}</select></label><div class="settings-footer"><button class="primary">Enregistrer le compte de cette tâche</button></div></form>` : ''}<h3>Journal</h3><pre id="logs" class="logs section-gap">Chargement…</pre><div class="settings-footer"><button data-action="cancel" data-id="${j.id}" class="danger">Annuler cette tâche</button><button data-close>Fermer</button></div>`); modalJob = id; await refreshLog(); }
 async function refreshLog() { const id = modalJob; const logs = await api('logs?id=' + encodeURIComponent(id)); if (modalJob === id && $('#logs'))
     $('#logs').textContent = logs.length ? logs.map((l) => `${date(l.at)}  ${l.line}`).join('\n') : 'Aucun message pour le moment.'; }
 document.addEventListener('click', e => {
@@ -118,7 +162,7 @@ document.addEventListener('click', e => {
             if (b.dataset.action === 'delete' && !confirm('Retirer cette tâche de la liste ? Les fichiers téléchargés seront conservés.'))
                 return;
             await api('job', { id: b.dataset.id, action: b.dataset.action });
-            await load();
+            await load(true);
             return;
         }
         if (b.dataset.detail) {
@@ -126,7 +170,7 @@ document.addEventListener('click', e => {
             return;
         }
         if (b.dataset.site) {
-            openSite(b.dataset.site);
+            await openSite(b.dataset.site);
             return;
         }
         if (b.dataset.help) {
@@ -135,14 +179,14 @@ document.addEventListener('click', e => {
         }
         if (b.dataset.profileEdit) {
             const p = data.state.profiles.find(x => x.id === b.dataset.profileEdit);
-            openSite(p.site, p);
+            await openSite(p.site, p);
             return;
         }
         if (b.dataset.profileDelete) {
             if (!confirm('Supprimer ce compte enregistré ?'))
                 return;
             await api('profile/delete', { id: b.dataset.profileDelete });
-            await load();
+            await load(true);
             renderAccounts();
             return;
         }
@@ -177,7 +221,7 @@ document.addEventListener('click', e => {
                 return;
             default: return;
         }
-        await load();
+        await load(true);
         if (page === 'settings')
             renderSettings();
     });
@@ -185,7 +229,12 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => { const el = e.target; if (el.id === 'override-media')
     $('#job-filter-options').classList.toggle('hidden', !el.checked); if (el.id === 'site-media-override')
     $('#site-filter-options').classList.toggle('hidden', !el.checked); if (el.id === 'profile-method')
-    toggleMethod(); if (el.id === 'global-layout')
+    toggleMethod(); if (el.id === 'profile-select')
+    run(() => showProfileEditor(el.dataset.siteId, el.value)); if (el.id === 'site-default' && el.value) {
+    const sel = $('#profile-select');
+    sel.value = el.value;
+    run(() => showProfileEditor(sel.dataset.siteId, el.value));
+} if (el.id === 'global-layout')
     preview(); });
 document.addEventListener('input', e => { const el = e.target; if (el.id === 'history-search') {
     search = el.value;
@@ -220,12 +269,12 @@ document.addEventListener('submit', e => {
                 toast(`${r.added} tâche(s) ajoutée(s).${r.errors.length ? '\n' + r.errors.join('\n') : ''}`, !!r.errors.length);
                 if (!r.errors.length)
                     $('#urls').value = '';
-                await load();
+                await load(true);
             }
             if (form.id === 'settings-form') {
                 const s = { ...data.state.settings, destination: val('global-dest'), layout: val('global-layout'), filename: val('global-filename'), filters: readFilters('global'), concurrency: Number(val('concurrency')), quotaBytes: Math.round(Number(val('quota')) * 1e9), rateKiB: Number(val('rate')), galleryPath: val('gallery-path'), ytdlpPath: val('ytdlp-path') };
                 await api('settings', s);
-                await load();
+                await load(true);
                 toast('Paramètres enregistrés.');
             }
             if (form.id === 'site-form') {
@@ -235,16 +284,23 @@ document.addEventListener('submit', e => {
                     sc.filters = readFilters('site');
                 const s = { ...data.state.settings, sites: { ...data.state.settings.sites, [id]: sc } };
                 await api('settings', s);
-                await load();
+                await load(true);
                 toast('Réglages du site enregistrés.');
                 closeModal();
             }
+            if (form.id === 'job-profile-form') {
+                const p = val('detail-profile');
+                await api('job/profile', { id: form.dataset.jobId, mode: p === 'inherit' ? 'inherit' : p ? 'explicit' : 'none', profileId: p === 'inherit' ? '' : p });
+                await load(true);
+                await openDetail(form.dataset.jobId);
+                toast('Compte affecté. Cliquez sur Démarrer / reprendre.');
+            }
             if (form.id === 'profile-form') {
-                await api('profile', { id: form.dataset.profileId, name: val('profile-name'), site: form.dataset.siteId, method: val('profile-method'), userId: val('profile-user'), token: val('profile-token'), tokenSecret: val('profile-secret'), cookiePath: val('profile-cookie') });
-                await load();
+                await api('profile', { id: form.dataset.profileId, name: val('profile-name'), site: form.dataset.siteId, method: val('profile-method'), userId: val('profile-user'), token: val('profile-token'), tokenSecret: val('profile-secret'), cookiePath: val('profile-cookie'), setDefault: check('profile-default') });
+                await load(true);
                 closeModal();
                 renderAccounts();
-                toast('Compte enregistré. Choisissez-le comme compte par défaut dans les réglages du site.');
+                toast('Compte enregistré et relu avec succès. La reprise des téléchargements reste manuelle.');
             }
         }
         finally {

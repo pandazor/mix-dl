@@ -13,6 +13,7 @@ et les programmes externes sont distincts ; les moteurs sont lancés comme proce
 | Go | https://go.dev/ |
 | Wails | https://github.com/wailsapp/wails |
 | modernc SQLite et dépendances Go | Versions dans `go.mod` et `go.sum` des sources |
+| GTK4 / WebKitGTK6 / Secret Service | Prérequis système Linux, non redistribués |
 | Microsoft Edge WebView2 | Prérequis système, non redistribué dans ce paquet |
 
 Les versions exactes, URL de téléchargement et empreintes des moteurs se trouvent
@@ -22,8 +23,8 @@ leurs dépendances Python ; voir également les notices fournies par leurs proje
 
 Le binaire FFmpeg fourni est une construction GPL du projet FFmpeg-Builds de
 yt-dlp. Le projet publie ses recettes de construction et les liens vers les
-sources amont sur la page indiquée ci-dessus. La commande `tools/ffmpeg.exe -version`
+sources amont sur la page indiquée ci-dessus. La commande `tools/ffmpeg.exe -version` (Windows) ou `tools/ffmpeg -version` (Linux)
 affiche l'identifiant de révision et la configuration de cette construction.
-Ce ZIP est destiné à un usage personnel ; avant toute redistribution publique,
+Ce paquet est destiné à un usage personnel ; avant toute redistribution publique,
 conserver et satisfaire les conditions de chaque composant, notamment celles
 portant sur la fourniture du code source correspondant.

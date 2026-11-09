@@ -11,11 +11,11 @@ import (
 	"dl-manager/internal/web"
 	"embed"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
-	"golang.org/x/sys/windows"
 	"image"
 	"image/color"
 	"image/png"
@@ -23,19 +23,16 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync/atomic"
-	"unsafe"
 )
 
 //go:embed frontend/index.html frontend/style.css frontend/dist/app.js
 var assets embed.FS
 
-func message(text string) {
-	p, _ := windows.UTF16PtrFromString(text)
-	title, _ := windows.UTF16PtrFromString("dl-manager")
-	windows.NewLazySystemDLL("user32.dll").NewProc("MessageBoxW").Call(0, uintptr(unsafe.Pointer(p)), uintptr(unsafe.Pointer(title)), 0x10)
-}
+var errAlreadyOpen = errors.New("dl-manager is already running")
+
 func main() {
 	if e := run(); e != nil {
 		log.Print(e)
@@ -46,7 +43,10 @@ func main() {
 func run() error {
 	preview := flag.String("preview", "", "Developer UI preview: listen address (loopback only)")
 	dataArg := flag.String("data", "", "Override portable data directory")
-	selfTest := flag.Bool("self-test", false, "Test Windows encryption without credentials")
+	var selfTest bool
+	if runtime.GOOS == "windows" {
+		flag.BoolVar(&selfTest, "self-test", false, "Test Windows encryption without credentials")
+	}
 	flag.Parse()
 	executable, e := os.Executable()
 	if e != nil {
@@ -66,7 +66,7 @@ func run() error {
 			return e
 		}
 	}
-	if *selfTest {
+	if selfTest {
 		tmp, e := os.MkdirTemp("", "dl-manager-self-test-")
 		if e != nil {
 			return e
@@ -91,19 +91,19 @@ func run() error {
 		fmt.Println(string(b))
 		return os.WriteFile(filepath.Join(root, "self-test-result.json"), b, 0600)
 	}
-	mutexName, _ := windows.UTF16PtrFromString("Local\\dl-manager-" + strings.NewReplacer("\\", "_", ":", "_").Replace(strings.ToLower(dataDir)))
-	mutex, err := windows.CreateMutex(nil, true, mutexName)
-	if err == windows.ERROR_ALREADY_EXISTS {
-		message("dl-manager est déjà ouvert. Retrouvez-le dans la zone de notification.")
+	if e = os.MkdirAll(dataDir, 0700); e != nil {
+		return fmt.Errorf("Déplacez le dossier de l'application vers un emplacement où vous pouvez écrire : %w", e)
+	}
+	unlock, err := lockDataDir(dataDir)
+	if errors.Is(err, errAlreadyOpen) {
+		log.Print(alreadyOpenMessage)
+		message(alreadyOpenMessage)
 		return nil
 	}
 	if err != nil {
 		return err
 	}
-	defer windows.CloseHandle(mutex)
-	if e = os.MkdirAll(dataDir, 0700); e != nil {
-		return fmt.Errorf("Déplacez le dossier de l'application vers un emplacement où vous pouvez écrire : %w", e)
-	}
+	defer unlock()
 	store, e := storage.Open(filepath.Join(dataDir, "state.db"))
 	if e != nil {
 		return e
@@ -173,24 +173,27 @@ func run() error {
 	var quitting atomic.Bool
 	app = application.New(application.Options{Name: "dl-manager", Description: "Gestionnaire de téléchargements", Icon: icon(), Assets: application.AssetOptions{Handler: handler}, Windows: application.WindowsOptions{DisableQuitOnLastWindowClosed: true, WebviewUserDataPath: filepath.Join(dataDir, "webview")}, OnShutdown: func() { quitting.Store(true); manager.Close() }})
 	window = app.Window.NewWithOptions(application.WebviewWindowOptions{Title: "dl-manager", Width: 1280, Height: 850, MinWidth: 840, MinHeight: 620, URL: "/", BackgroundColour: application.NewRGB(17, 21, 29)})
-	window.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
-		if !quitting.Load() {
-			e.Cancel()
-			window.Hide()
-		}
-	})
 	quit := func() { quitting.Store(true); app.Quit() }
-	menu := application.NewMenu()
-	menu.Add("Afficher dl-manager").OnClick(func(*application.Context) { window.Show(); window.Focus() })
-	menu.Add("Tout mettre en pause").OnClick(func(*application.Context) { manager.Pause() })
-	menu.AddSeparator()
-	menu.Add("Quitter").OnClick(func(*application.Context) { quit() })
-	tray := app.SystemTray.New()
-	tray.SetIcon(icon())
-	tray.SetTooltip("dl-manager — téléchargements")
-	tray.SetMenu(menu)
-	tray.OnClick(func() { window.Show(); window.Focus() })
-	api.Hide = func() { window.Hide() }
+	api.Hide = func() { window.Minimise() }
+	if runtime.GOOS == "windows" {
+		window.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+			if !quitting.Load() {
+				e.Cancel()
+				window.Hide()
+			}
+		})
+		menu := application.NewMenu()
+		menu.Add("Afficher dl-manager").OnClick(func(*application.Context) { window.Show(); window.Focus() })
+		menu.Add("Tout mettre en pause").OnClick(func(*application.Context) { manager.Pause() })
+		menu.AddSeparator()
+		menu.Add("Quitter").OnClick(func(*application.Context) { quit() })
+		tray := app.SystemTray.New()
+		tray.SetIcon(icon())
+		tray.SetTooltip("dl-manager - téléchargements")
+		tray.SetMenu(menu)
+		tray.OnClick(func() { window.Show(); window.Focus() })
+		api.Hide = func() { window.Hide() }
+	}
 	api.Quit = quit
 	api.OpenURL = func(url string) error { return app.Browser.OpenURL(url) }
 	api.Pick = func(kind string) (string, error) {
@@ -200,7 +203,10 @@ func run() error {
 		} else if kind == "cookies" {
 			d.AddFilter("Cookies Netscape", "*.txt").SetTitle("Importer cookies.txt")
 		} else {
-			d.AddFilter("Exécutable Windows", "*.exe").SetTitle("Choisir un moteur")
+			d.SetTitle("Choisir un moteur")
+			if runtime.GOOS == "windows" {
+				d.AddFilter("Exécutable Windows", "*.exe")
+			}
 		}
 		return d.PromptForSingleSelection()
 	}

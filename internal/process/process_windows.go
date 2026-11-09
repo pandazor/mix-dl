@@ -65,3 +65,9 @@ func (t *Tree) Wait(ctx context.Context) error {
 		return ctx.Err()
 	}
 }
+
+func ProbeOutput(ctx context.Context, path string, args ...string) ([]byte, error) {
+	cmd := exec.CommandContext(ctx, path, args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	return cmd.CombinedOutput()
+}

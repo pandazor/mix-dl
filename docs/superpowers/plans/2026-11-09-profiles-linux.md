@@ -22,10 +22,15 @@
 - Linux: pas de secrets en clair, cancellation tue enfants, noms executables sans .exe.
 
 ## Taches
-- [ ] T1 Comptes/API/frontend: tests regression puis correction, association par defaut et affichage.
-- [ ] T2 Linux: adaptateurs OS, coffre, outils, compilation/package et tests cibles.
-- [ ] T3 Livraison: tests Windows, build des deux plateformes, revue, archives, depot local et script de copie/push si acces reste bloque.
+- [x] T1 Comptes/API/frontend: tests regression puis correction, association par defaut et affichage.
+- [x] T2 Linux: adaptateurs OS, coffre, outils, compilation/package et tests cibles.
+- [x] T3 Livraison: tests Windows, build des deux plateformes, revue, archives, depot local et script de copie/push si acces reste bloque.
 
 ## Journal
 - Depot local initialise. Depot distant et dossier G: inaccessibles avec les droits de cette session.
 - Ruling: executer sans demande intermediaire, comme demande par utilisateur; seul le transfert bloque restera manuel si necessaire.
+
+- Final: 34 tests Windows reussis, 1 DPAPI skip documente, Windows vet et compilations Windows/Linux reussis.
+- Controle UI synthetique: ID affiche, secret conserve apres edition vide et reouverture.
+- Revue independante: 4 P2 corriges et controles. Script transfert teste avec depot bare local.
+- Limite restante: G: et cle SSH refusent les acces de la session; transfert et vrai push a executer par utilisateur.

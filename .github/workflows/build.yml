@@ -1,0 +1,57 @@
+name: Build and test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CGO_ENABLED: '0'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: dl-manager-windows-x64
+            path: bin/dl-manager.exe
+          - os: ubuntu-24.04
+            artifact: dl-manager-linux-x64
+            path: bin/dl-manager-linux-x64.tar.gz
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.3'
+          cache-dependency-path: go.sum
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: npm install --no-package-lock --no-audit --no-fund
+      - name: Test on Windows
+        if: runner.os == 'Windows'
+        run: go test -count=1 ./...
+      - name: Build on Windows
+        if: runner.os == 'Windows'
+        run: |
+          npx --no-install tsc -p frontend/tsconfig.json
+          go build -trimpath -ldflags '-s -w -H windowsgui' -o bin/dl-manager.exe .
+      - name: Test on Linux
+        if: runner.os == 'Linux'
+        run: go test -count=1 -tags purego ./...
+      - name: Build on Linux
+        if: runner.os == 'Linux'
+        run: |
+          sh build-linux.sh
+          tar -czf bin/dl-manager-linux-x64.tar.gz -C bin/linux-x64 dl-manager
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.path }}
+          if-no-files-found: error
