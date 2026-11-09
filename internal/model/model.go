@@ -24,6 +24,7 @@ type SiteSettings struct {
 	Filters     *Filters `json:"filters,omitempty"`
 }
 type Settings struct {
+	Language    string                  `json:"language,omitempty"`
 	CustomSites map[string]CustomSite   `json:"customSites,omitempty"`
 	Destination string                  `json:"destination"`
 	Layout      string                  `json:"layout"`
@@ -162,6 +163,9 @@ func (f Filters) Allowed() []string {
 func ValidLayout(v string) bool   { return v == "" || v == "flat" || v == "site" || v == "creator" }
 func ValidFilename(v string) bool { return v == "" || v == "default" || v == "id-title" }
 func (s Settings) Validate() error {
+	if !ValidLanguage(s.Language) {
+		return errors.New("Langue non prise en charge")
+	}
 	if e := ValidateCustomSites(s.CustomSites); e != nil {
 		return e
 	}
