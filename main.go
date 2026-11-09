@@ -171,7 +171,7 @@ func run() error {
 	var app *application.App
 	var window *application.WebviewWindow
 	var quitting atomic.Bool
-	app = application.New(application.Options{Name: "dl-manager", Description: "Gestionnaire de téléchargements", Icon: icon(), Assets: application.AssetOptions{Handler: handler}, Windows: application.WindowsOptions{DisableQuitOnLastWindowClosed: true, WebviewUserDataPath: filepath.Join(dataDir, "webview")}, OnShutdown: func() { quitting.Store(true); manager.Close() }})
+	app = application.New(application.Options{Name: "dl-manager", Description: "Gestionnaire de téléchargements", Icon: icon(), Assets: application.AssetOptions{Handler: handler}, Windows: application.WindowsOptions{DisableQuitOnLastWindowClosed: false, WebviewUserDataPath: filepath.Join(dataDir, "webview")}, OnShutdown: func() { quitting.Store(true); manager.Close() }})
 	window = app.Window.NewWithOptions(application.WebviewWindowOptions{Title: "dl-manager", Width: 1280, Height: 850, MinWidth: 840, MinHeight: 620, URL: "/", BackgroundColour: application.NewRGB(17, 21, 29)})
 	quit := func() { quitting.Store(true); app.Quit() }
 	api.Hide = func() { window.Minimise() }
@@ -179,7 +179,7 @@ func run() error {
 		window.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
 			if !quitting.Load() {
 				e.Cancel()
-				window.Hide()
+				go quit()
 			}
 		})
 		menu := application.NewMenu()
@@ -197,9 +197,14 @@ func run() error {
 	api.Quit = quit
 	api.OpenURL = func(url string) error { return app.Browser.OpenURL(url) }
 	api.Pick = func(kind string) (string, error) {
+		if kind == "backup-export" {
+			return app.Dialog.SaveFile().AttachToWindow(window).AddFilter("Sauvegarde chiffrée", "*.dlmbackup").SetFilename("dl-manager-sites.dlmbackup").CanCreateDirectories(true).PromptForSingleSelection()
+		}
 		d := app.Dialog.OpenFile().AttachToWindow(window)
 		if kind == "directory" {
 			d.CanChooseDirectories(true).CanChooseFiles(false).CanCreateDirectories(true).SetTitle("Choisir un dossier de téléchargement")
+		} else if kind == "backup-import" {
+			d.AddFilter("Sauvegarde chiffrée", "*.dlmbackup").SetTitle("Importer les sites et comptes")
 		} else if kind == "cookies" {
 			d.AddFilter("Cookies Netscape", "*.txt").SetTitle("Importer cookies.txt")
 		} else {

@@ -91,6 +91,16 @@ func (m *Manager) dispatch() {
 		if _, ok := m.active[j.ID]; ok {
 			continue
 		}
+		j.Destination = j.EffectiveDestination(state.Settings)
+		if j.Destination == "" || !filepath.IsAbs(j.Destination) {
+			j.Status = "failed"
+			j.Error = "Choisissez un dossier global ou un dossier propre au site"
+			if e = m.store.PutJob(j); e != nil {
+				m.fail(e)
+				return
+			}
+			continue
+		}
 		j.ProfileMode = j.ProfileSelection()
 		profile, err := model.ResolveProfile(j, state)
 		if err != nil {
@@ -251,6 +261,9 @@ func (m *Manager) Snapshot() (model.Snapshot, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	s, e := m.store.Snapshot()
+	for i := range s.Jobs {
+		s.Jobs[i].Destination = s.Jobs[i].EffectiveDestination(s.Settings)
+	}
 	s.Running = m.running
 	s.Active = len(m.active)
 	s.LastError = m.lastError

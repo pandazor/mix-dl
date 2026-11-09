@@ -1,4 +1,4 @@
-# dl-manager 0.1.0 — Windows x64
+# dl-manager 0.3.1 — Windows et Linux x64
 
 Gestionnaire personnel de téléchargements utilisant gallery-dl et yt-dlp.
 Le paquet inclut les moteurs : aucune installation de Python, Go, FFmpeg ou Deno
@@ -27,7 +27,7 @@ Le TAR.GZ Linux inclut aussi les cinq moteurs. Sur Debian/Ubuntu avec interface 
 ```sh
 sudo apt install libgtk-4-1 libwebkitgtk-6.0-4 libsecret-tools
 # Décompresser dans un dossier appartenant à votre utilisateur :
-tar -xzf dl-manager-0.2.0-linux-x64.tar.gz
+tar -xzf dl-manager-0.3.1-linux-x64.tar.gz
 cd dl-manager
 ./dl-manager
 ```
@@ -81,7 +81,8 @@ au site. Si le chiffrement échoue, le compte n'est pas enregistré en clair.
 ## File, filtres et dossiers
 
 - Réglages : global → site → options du nouvel ajout. Les choix sont figés à
-  l'ajout, sauf le compte par défaut qui est résolu à chaque lancement. Les secrets
+  l'ajout, sauf la destination héritée résolue au premier départ et le compte
+  par défaut résolu à chaque lancement. Les secrets
   sont relus à chaque tentative.
 - Dossiers : destination seule, `site`, ou `site/créateur`. Les recherches Rule34
   utilisent les tags comme nom de dossier. Un lien direct conserve son identité
@@ -116,9 +117,10 @@ avant que les moteurs s'arrêtent : ce n'est pas un plafond réseau strict.
 
 ## Fermeture et sauvegarde
 
-Sous Windows, la croix réduit l'application dans la zone de notification.
-Sous Linux, la croix quitte l'application et le bouton de réduction minimise la fenêtre. Pour l'arrêter,
-utiliser **Quitter l'application** ou **Quitter** dans le menu de l'icône.
+La croix **quitte l'application**, sous Windows comme sous Linux, avec le même
+arrêt propre que **Quitter l'application**. **Réduire en arrière-plan** conserve
+l'application ouverte : dans la zone de notification sous Windows, minimisée
+sous Linux. Le menu de l'icône Windows propose également **Quitter**.
 Les processus de téléchargement enfants sont arrêtés et les fichiers partiels
 restent disponibles pour la prochaine reprise.
 
@@ -151,10 +153,16 @@ La compilation produit `bin/dl-manager.exe`.
 
 `test.ps1` lance les tests Go. `scripts/fetch-tools.py` télécharge les moteurs
 officiels (Python nécessaire uniquement pour cette préparation) et vérifie leurs
-sommes publiées. `scripts/package.py --platform all` crée les ZIP et le TAR.GZ sous `../../outputs`.
+sommes publiées. `scripts/package.py --platform all` crée les ZIP et le TAR.GZ sous `../../outputs` (ou `--output dist` pour le dossier local).
 `build-linux.ps1` permet la compilation Linux depuis Windows ; `sh build-linux.sh`
 compile sous Linux, et `CGO_ENABLED=0 go test -tags purego ./...` y lance les tests.
 Le test d'intégration réel requiert `tools/gallery-dl.exe`.
+`npm run test:ui` vérifie le parcours des destinations et sauvegardes dans Chrome
+avec un profil temporaire et le binaire compilé. `DLM_TEST_BROWSER` permet de choisir
+le navigateur et `DLM_TEST_BINARY` un autre binaire. Sous Linux, installer le navigateur
+Playwright (`npx playwright install chromium`) ou renseigner `DLM_TEST_BROWSER`.
+`scripts/test-window-close.ps1` contrôle la fermeture native dans une session Windows
+avec WebView2 opérationnel ; il utilise uniquement un répertoire temporaire.
 
 Dans un environnement de test isolé où le profil DPAPI n'est pas chargé,
 `DLM_RESTRICTED_TESTS=1` permet de signaler explicitement le seul test DPAPI comme
@@ -165,9 +173,9 @@ https://codeberg.org/mikf/gallery-dl — https://gdl-org.github.io/docs/
 https://github.com/yt-dlp/yt-dlp — https://github.com/yt-dlp/FFmpeg-Builds
 https://github.com/denoland/deno
 
-## Mise à jour depuis 0.1.0
+## Mise à jour depuis 0.1.0, 0.2.0 ou 0.3.0
 
-Quitter l'ancienne application et sauvegarder son dossier `data`. Extraire 0.2.0
+Quitter l'ancienne application et sauvegarder son dossier `data`. Extraire 0.3.1
 puis conserver/copier ce dossier `data` à côté du nouvel exécutable Windows ; les
 comptes DPAPI existants restent lisibles dans la même session Windows. Le paquet
 ne contient aucun `data` et ne remplace pas les téléchargements.
@@ -175,7 +183,8 @@ ne contient aucun `data` et ne remplace pas les téléchargements.
 Les anciennes tâches sans compte enregistré sont interprétées comme utilisant
 le compte par défaut du site, car 0.1.0 ne distinguait pas héritage et choix
 « Sans compte ». Choisir explicitement « Sans compte » dans les détails si voulu.
-Ne pas copier le coffre Windows sous Linux : reconfigurer les comptes Linux.
+Ne pas copier le coffre Windows sous Linux : utiliser une sauvegarde chiffrée
+ou reconfigurer les comptes Linux.
 
 ## Dépôt
 
@@ -185,3 +194,70 @@ Ce script clone les sources vers `G:\Documents\ChatGPT\mix-dl`, copie les paquet
 sous `dist`, réutilise la configuration SSH du projet `maison-work/nouveau-jeu`
 si disponible, puis pousse `main`. Aucun push forcé, aucune suppression de dossier,
 aucun secret ou téléchargement personnel dans le dépôt.
+
+## Destinations et sauvegardes — 0.3.1
+
+Le dossier effectif suit cet ordre : **dossier saisi pour la tâche > dossier du site > dossier global**.
+
+Pour activer la prise en compte du dossier global :
+
+1. Dans **Paramètres**, renseigner le **Dossier global de téléchargement**.
+   Il s'enregistre automatiquement à la sortie du champ, au choix par le sélecteur
+   ou avant de changer de page. Le message sous le champ confirme l'enregistrement
+   ou indique l'erreur. Les autres options nécessitent **Enregistrer les paramètres**.
+2. Dans **Comptes & sites**, sélectionner le site, cocher **Utiliser le dossier
+   global**, puis cliquer sur **Enregistrer les réglages du site**. Le champ affiche
+   le chemin global actuel. Décocher pour choisir un dossier propre au site.
+   Les dossiers personnalisés déjà enregistrés sont conservés lors de la mise à jour :
+   cocher cette case pour les remettre explicitement à l'héritage.
+3. À l'ajout des liens, laisser aussi le champ **Destination** vide dans
+   **Options pour ces téléchargements** pour conserver cet héritage.
+
+Pour les nouvelles tâches héritées, le dossier est résolu au premier démarrage :
+un changement de réglage avant ce départ est donc pris en compte. Dès qu'une tâche
+a commencé, son dossier reste fixe pour préserver ses fichiers partiels et sa reprise.
+
+Les tâches créées en 0.1/0.2 ne distinguaient pas un dossier hérité d'un choix
+personnel. Après avoir enregistré les réglages ci-dessus, cliquer sur **Tout
+mettre en pause**, attendre l'arrêt des tâches actives, puis utiliser
+**Actualiser les destinations en attente** pour réappliquer site/global aux tâches
+jamais démarrées. Cliquer ensuite sur **Démarrer / reprendre** pour relancer la file.
+Les tâches commencées, les téléchargements et les destinations explicitement
+personnalisées par 0.3.0 sont conservés. L'actualisation ne déplace aucun fichier
+et ne relance pas les téléchargements automatiquement.
+
+Avec **Site / Créateur**, choisir par exemple `G:\dl-a-trier` comme dossier global :
+Rule34 ajoutera `rule34\nom_artiste`. Si le global se termine déjà par `rule34`,
+le nom sera répété. Les autres choix (classement, filtres, nommage) restent fixés
+à l'ajout.
+
+Dans **Comptes & sites**, **Exporter les sites et comptes** crée une sauvegarde
+`.dlmbackup`, chiffrée par une phrase secrète de **16 caractères minimum**.
+Il faut la confirmer et reconnaître l'avertissement : toute personne disposant
+du fichier et de cette phrase peut récupérer les clés, tokens et cookies.
+Préférer une longue phrase unique et la conserver séparément ; aucun mécanisme
+de récupération n'existe. Le programme refuse d'écraser une sauvegarde existante.
+
+**Importer une sauvegarde** ajoute les comptes dans le coffre de la session
+courante, avec de nouveaux identifiants internes. Le fichier est portable entre
+Windows et Linux, contrairement aux fichiers du coffre `data/credentials`.
+Les comptes déjà présents sont conservés ; réimporter le même fichier peut créer
+des doublons. Les réglages des sites existants restent inchangés sauf si la case
+de remplacement est cochée. Les chemins incompatibles avec l'OS sont remis
+à l'héritage du dossier global : contrôler les destinations après l'import.
+
+**L'export fonctionne pendant les téléchargements**, après une pause individuelle
+ou avec la file entièrement en pause. Il capture les comptes et leurs réglages
+ensemble, puis chiffre le fichier sans interrompre les moteurs.
+
+**L'import nécessite une file en pause** : son dialogue propose **Mettre la file
+en pause** et indique quand les tâches ont fini de s'arrêter. Il ne relance pas
+la file. La sauvegarde inclut les réglages des sites et leurs comptes ; elle
+n'inclut ni téléchargements, ni tâches/historique,
+ni réglages globaux, ni caches moteurs. Une sauvegarde ne renouvelle pas les
+identifiants expirés. Aucun téléchargement n'est lancé par l'import.
+
+Format version 1 : AES-256-GCM, PBKDF2-HMAC-SHA256 à 600 000 itérations,
+sel de 16 octets et nonce de 12 octets aléatoires, en-tête authentifié,
+32 Mio maximum. Aucun export en clair ni stockage de la phrase secrète.
+Le format et le coût de dérivation sont bornés avant déchiffrement.

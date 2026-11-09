@@ -52,7 +52,7 @@ else if (page === 'accounts')
     renderAccounts();
 else
     renderSettings(); updateChrome(); }
-function renderDownloads() { const s = data.state.settings; $('#main').innerHTML = header('Téléchargements', 'Ajoutez vos liens. La file s’occupe de la suite.', '<button id="pause-all">Ⅱ Tout mettre en pause</button><button class="primary" id="start-all">▶ Démarrer / reprendre</button>') + `<div id="queue-notice"></div><section class="panel"><div class="panel-title"><h2>Ajouter à la file</h2><span class="tag">Plusieurs liens acceptés</span></div><form id="add-form"><div class="add-row"><textarea id="urls" aria-label="Adresses à télécharger" placeholder="Collez une adresse, ou plusieurs — une par ligne" required></textarea><button class="primary" type="submit">＋ Ajouter</button></div><div class="media-row"><span id="detected" class="muted smalltext">Site détecté automatiquement</span><span class="divider"></span><span class="muted smalltext">Réglages du site appliqués par défaut</span></div><details><summary>Options pour ces téléchargements</summary><div class="form-grid"><label class="full">Destination${pathInput('job-dest', '', 'Dossier du site ou dossier global')}</label><label>Organisation<select id="job-layout">${opts([['', 'Réglage du site'], ...layouts], '')}</select></label><label>Compte<select id="job-profile"><option value="inherit">Compte par défaut du site</option><option value="">Sans compte</option>${data.state.profiles.map(p => `<option value="${p.id}">${esc(siteName(p.site) + ' · ' + p.name)}</option>`).join('')}</select></label><div class="full"><label class="check"><input id="override-media" type="checkbox">Personnaliser les médias pour ces liens</label><div id="job-filter-options" class="hidden section-gap">${extensions('job', s.filters)}</div></div></div></details></form></section><div id="stats" class="stats"></div><section class="panel table-panel"><div class="table-toolbar"><h2>File d'attente <span id="queue-count" class="muted"></span></h2><span class="muted smalltext">Ordre d'ajout · reprise manuelle</span></div><div id="job-table" class="table-wrap"></div></section><div class="bottom-status"><span id="queue-status"></span><span>Les fichiers partiels sont conservés.</span></div>`; updateJobs(); }
+function renderDownloads() { const s = data.state.settings; $('#main').innerHTML = header('Téléchargements', 'Ajoutez vos liens. La file s’occupe de la suite.', '<button id="pause-all">Ⅱ Tout mettre en pause</button><button class="primary" id="start-all">▶ Démarrer / reprendre</button>') + `<div id="queue-notice"></div><section class="panel"><div class="panel-title"><h2>Ajouter à la file</h2><span class="tag">Plusieurs liens acceptés</span></div><form id="add-form"><div class="add-row"><textarea id="urls" aria-label="Adresses à télécharger" placeholder="Collez une adresse, ou plusieurs — une par ligne" required></textarea><button class="primary" type="submit">＋ Ajouter</button></div><div class="media-row"><span id="detected" class="muted smalltext">Site détecté automatiquement</span><span class="divider"></span><span class="muted smalltext">Réglages du site appliqués par défaut</span></div><details><summary>Options pour ces téléchargements</summary><div class="form-grid"><label class="full">Destination${pathInput('job-dest', '', 'Dossier du site ou dossier global')}</label><label>Organisation<select id="job-layout">${opts([['', 'Réglage du site'], ...layouts], '')}</select></label><label>Compte<select id="job-profile"><option value="inherit">Compte par défaut du site</option><option value="">Sans compte</option>${data.state.profiles.map(p => `<option value="${p.id}">${esc(siteName(p.site) + ' · ' + p.name)}</option>`).join('')}</select></label><div class="full"><label class="check"><input id="override-media" type="checkbox">Personnaliser les médias pour ces liens</label><div id="job-filter-options" class="hidden section-gap">${extensions('job', s.filters)}</div></div></div></details></form></section><div id="stats" class="stats"></div><section class="panel table-panel"><div class="table-toolbar"><h2>File d'attente <span id="queue-count" class="muted"></span></h2><button class="small" id="refresh-destinations">Actualiser les destinations en attente</button></div><div id="job-table" class="table-wrap"></div></section><div class="bottom-status"><span id="queue-status"></span><span>Les fichiers partiels sont conservés.</span></div>`; updateJobs(); }
 function renderHistory() { $('#main').innerHTML = header('Historique', 'Retrouvez les tâches terminées, les interruptions et les erreurs.', '<button id="clear-history">Retirer les tâches terminées</button>') + `<section class="panel table-panel"><div class="table-toolbar"><h2>Téléchargements précédents</h2><input id="history-search" placeholder="Rechercher une adresse ou un site…" value="${esc(search)}" aria-label="Rechercher dans l'historique"></div><div id="job-table" class="table-wrap"></div></section>`; updateJobs(); }
 function updateChrome() { if (!data)
     return; const s = data.state; const el = $('#side-state'); if (el)
@@ -77,7 +77,7 @@ function updateJobs() {
         $('#queue-notice').innerHTML = s.lastError ? `<div class="notice">${esc(s.lastError)}</div>` : limit && s.usedBytes >= limit ? '<div class="notice">Limite de volume atteinte. Réinitialisez le compteur ou augmentez la limite, puis cliquez sur Reprendre.</div>' : !s.settings.destination ? '<div class="notice">Choisissez votre dossier global dans Paramètres, ou une destination dans les options de téléchargement.</div>' : '';
     }
 }
-function renderAccounts() { $('#main').innerHTML = header('Comptes & sites', 'Réglez une fois la destination et la connexion de chaque plateforme.') + `<div class="site-grid">${data.sites.map(s => { const n = data.state.profiles.filter(p => p.site === s.id).length; return `<button class="site-card" data-site="${s.id}"><span class="site-icon">${esc(s.name.slice(0, 2))}</span><span><h3>${esc(s.name)}</h3><p>${n ? n + ' compte(s) enregistré(s)' : 'Public ou à configurer'}</p></span></button>`; }).join('')}</div><section class="panel section-gap"><h2>Vos comptes</h2>${data.state.profiles.length ? data.state.profiles.map(p => `<div class="profile-row"><div><h3>${esc(p.name)}</h3><p class="muted smalltext">${esc(siteName(p.site))} · ${esc(p.method)} · ${p.state === 'authentication_required' ? 'Connexion à renouveler' : 'Configuré'}</p></div><div class="row"><button class="small" data-profile-check="${p.id}">Vérifier le stockage</button><button class="small" data-profile-edit="${p.id}">Modifier</button><button class="small danger" data-profile-delete="${p.id}">Supprimer</button></div></div>`).join('') : '<p class="muted section-gap">Aucun compte enregistré. Les sites publics restent accessibles sans compte.</p>'}<p class="footer-note">Les connexions se font dans votre navigateur. Les secrets importés sont protégés par le coffre de votre session. Sur un autre PC, configurez à nouveau vos comptes.</p></section>`; }
+function renderAccounts() { $('#main').innerHTML = header('Comptes & sites', 'Réglez une fois la destination et la connexion de chaque plateforme.', '<button id="backup-import">Importer une sauvegarde</button><button id="backup-export">Exporter les sites et comptes</button>') + `<div class="site-grid">${data.sites.map(s => { const n = data.state.profiles.filter(p => p.site === s.id).length; return `<button class="site-card" data-site="${s.id}"><span class="site-icon">${esc(s.name.slice(0, 2))}</span><span><h3>${esc(s.name)}</h3><p>${n ? n + ' compte(s) enregistré(s)' : 'Public ou à configurer'}</p></span></button>`; }).join('')}</div><section class="panel section-gap"><h2>Vos comptes</h2>${data.state.profiles.length ? data.state.profiles.map(p => `<div class="profile-row"><div><h3>${esc(p.name)}</h3><p class="muted smalltext">${esc(siteName(p.site))} · ${esc(p.method)} · ${p.state === 'authentication_required' ? 'Connexion à renouveler' : 'Configuré'}</p></div><div class="row"><button class="small" data-profile-check="${p.id}">Vérifier le stockage</button><button class="small" data-profile-edit="${p.id}">Modifier</button><button class="small danger" data-profile-delete="${p.id}">Supprimer</button></div></div>`).join('') : '<p class="muted section-gap">Aucun compte enregistré. Les sites publics restent accessibles sans compte.</p>'}<p class="footer-note">Les connexions se font dans votre navigateur. Les secrets importés sont protégés par le coffre de votre session. Pour changer de PC ou d’OS, utilisez une sauvegarde chiffrée avec une phrase secrète.</p></section>`; }
 async function openSite(id, profile) {
     const site = data.sites.find(x => x.id === id);
     const s = data.state.settings.sites[id] || { destination: '', layout: '', filename: '', profileId: '' };
@@ -85,7 +85,7 @@ async function openSite(id, profile) {
     const selected = profile?.id || s.profileId || profiles[0]?.id || '';
     showModal(`<div class="modal-head"><h2>${esc(site.name)}</h2><button data-close>×</button></div>
  <form id="site-form" data-site-id="${id}"><h3>Destination et classement</h3><div class="form-grid">
- <label class="full">Dossier propre à ce site${pathInput('site-dest', s.destination || '')}</label>
+ <label class="full check"><input id="site-use-global" type="checkbox" ${!s.destination ? 'checked' : ''}>Utiliser le dossier global</label><label class="full">Dossier de téléchargement${pathInput('site-dest', s.destination || '', 'Choisir un dossier propre à ce site')}</label><p class="full footer-note">Dossier global actuel : <code>${esc(data.state.settings.destination)}</code>. Cochez pour suivre ses changements ; décochez pour choisir un dossier propre au site. Les tâches déjà commencées gardent leur dossier.</p>
  <label>Organisation<select id="site-layout">${opts([['', 'Hériter du réglage global'], ...layouts], s.layout || '')}</select></label>
  <label>Nommage des fichiers<select id="site-filename">${opts([['', 'Hériter du réglage global'], ...filenames], s.filename || '')}</select></label>
  <label class="full">Compte par défaut pour les tâches héritées<select id="site-default">${opts([['', 'Sans compte'], ...profiles.map(p => [p.id, p.name])], s.profileId || '')}</select></label>
@@ -94,6 +94,7 @@ async function openSite(id, profile) {
  <div class="guide">${esc(site.guide)}<br><button class="small ghost" type="button" data-help="${id}" style="margin-top:10px">Ouvrir le site / la documentation ↗</button></div>
  <label>Compte à consulter ou modifier<select id="profile-select" data-site-id="${id}">${opts([['', 'Ajouter un nouveau compte'], ...profiles.map(p => [p.id, p.name])], selected)}</select></label>
  <div id="account-editor" class="section-gap"></div>`);
+    updateSiteDestination();
     $('#site-filter-options').classList.toggle('hidden', !s.filters);
     await showProfileEditor(id, selected);
 }
@@ -124,7 +125,55 @@ async function showProfileEditor(siteId, id) {
 function jobProfileMode(j) { return j.profileMode || (j.profileId ? 'explicit' : 'inherit'); }
 function jobProfileLabel(j) { const mode = jobProfileMode(j); const id = mode === 'inherit' ? data.state.settings.sites[j.site]?.profileId : j.profileId; const p = data.state.profiles.find(x => x.id === id); return mode === 'none' ? 'Sans compte' : (mode === 'inherit' ? 'Par défaut : ' : '') + (p?.name || 'Sans compte'); }
 function toggleMethod() { const m = val('profile-method'); $('#cookie-field').classList.toggle('hidden', m !== 'cookies'); $('#userid-field').classList.toggle('hidden', m !== 'api'); $('#token-field').classList.toggle('hidden', m === 'cookies'); $('#secret-field').classList.toggle('hidden', m !== 'oauth1'); }
-function renderSettings() { const s = data.state.settings; $('#main').innerHTML = header('Paramètres', 'Les valeurs globales s’appliquent aux prochains ajouts à la file.') + `<form id="settings-form"><section class="panel settings-panel"><h2>Destination & classement</h2><div class="form-grid"><label class="full">Dossier global de téléchargement${pathInput('global-dest', s.destination, 'Choisir un dossier')}</label><label>Organisation des dossiers<select id="global-layout">${opts(layouts, s.layout)}</select></label><label>Nommage des fichiers<select id="global-filename">${opts(filenames, s.filename)}</select></label><div class="full preview" id="path-preview"></div></div></section><section class="panel settings-panel"><h2>Rythme & limite de volume</h2><div class="form-grid"><label>Téléchargements simultanés<select id="concurrency">${opts([['1', '1 tâche'], ['2', '2 tâches'], ['3', '3 tâches']], String(s.concurrency))}</select></label><label>Débit par tâche (Kio/s, 0 = illimité)<input id="rate" type="number" min="0" value="${s.rateKiB}"></label><label>Pause après ce volume (Go, 0 = désactivé)<input id="quota" type="number" min="0" step="0.1" value="${s.quotaBytes / 1e9}"></label><div><label>Volume actuel</label><p class="section-gap">${bytes(data.state.usedBytes)} <button type="button" class="small" id="reset-quota">Réinitialiser</button></p></div></div><p class="footer-note">Le compteur est conservé au redémarrage. Le réinitialiser met les tâches en pause et attend votre clic pour reprendre. Un même site et dossier, ou un même compte, est traité par une seule tâche à la fois pour éviter les conflits.</p></section><section class="panel settings-panel"><h2>Médias par défaut</h2><div class="section-gap">${extensions('global', s.filters)}</div><p class="footer-note">Les extensions filtrent les fichiers disponibles à la source. Aucun transcodage automatique. Les extensions personnalisées inconnues sont classées comme images.</p></section><section class="panel settings-panel"><h2>Moteurs</h2><div id="engines" class="section-gap muted">Vérification des versions…</div><details><summary>Chemins personnalisés (facultatifs)</summary><div class="form-grid"><label class="full">gallery-dl${pathInput('gallery-path', s.galleryPath, 'Utiliser le moteur du paquet', 'engine')}</label><label class="full">yt-dlp${pathInput('ytdlp-path', s.ytdlpPath, 'Utiliser le moteur du paquet', 'engine')}</label></div></details><p class="footer-note">Données : <code>${esc(data.dataDir)}</code><br>Le paquet garde les outils dans tools/ et les données dans data/.</p><div class="settings-footer"><button class="primary">Enregistrer les paramètres</button></div></section></form>`; preview(); run(async () => { const es = await api('engines'); if (page === 'settings')
+let destinationSave = Promise.resolve();
+async function saveGlobalDestination() {
+    const input = $('#global-dest');
+    if (!input)
+        return destinationSave;
+    const destination = input.value.trim();
+    const status = $('#global-save-status');
+    const pending = destinationSave.catch(() => { }).then(async () => {
+        try {
+            if (destination !== data.state.settings.destination) {
+                if (status.isConnected) {
+                    status.className = 'footer-note';
+                    status.textContent = 'Enregistrement du dossier global…';
+                }
+                await api('settings/destination', { destination });
+                await load(true);
+            }
+            if (input.isConnected && input.value.trim() === destination) {
+                input.value = destination;
+                status.className = 'footer-note';
+                status.textContent = 'Dossier global enregistré. Les sites qui en héritent utilisent ce chemin.';
+            }
+        }
+        catch (e) {
+            if (status.isConnected) {
+                status.className = 'footer-note error';
+                status.textContent = 'Dossier non enregistré : ' + e.message;
+            }
+            throw e;
+        }
+    });
+    destinationSave = pending;
+    return pending;
+}
+function updateSiteDestination() {
+    const input = $('#site-dest');
+    const inherited = check('site-use-global');
+    if (inherited) {
+        if (!input.disabled)
+            input.dataset.customDestination = input.value;
+        input.value = data.state.settings.destination;
+    }
+    else if (input.disabled) {
+        input.value = input.dataset.customDestination || '';
+    }
+    input.disabled = inherited;
+    $('[data-pick="site-dest"]').disabled = inherited;
+}
+function renderSettings() { const s = data.state.settings; $('#main').innerHTML = header('Paramètres', 'Le dossier global s’applique aux tâches héritées jamais démarrées. Les autres valeurs s’appliquent aux nouveaux ajouts.') + `<form id="settings-form"><section class="panel settings-panel"><h2>Destination & classement</h2><div class="form-grid"><label class="full">Dossier global de téléchargement${pathInput('global-dest', s.destination, 'Choisir un dossier')}</label><p id="global-save-status" class="full footer-note" role="status">Le dossier global est enregistré automatiquement après modification. Les autres paramètres se sauvegardent avec le bouton ci-dessous.</p><label>Organisation des dossiers<select id="global-layout">${opts(layouts, s.layout)}</select></label><label>Nommage des fichiers<select id="global-filename">${opts(filenames, s.filename)}</select></label><div class="full preview" id="path-preview"></div></div></section><section class="panel settings-panel"><h2>Rythme & limite de volume</h2><div class="form-grid"><label>Téléchargements simultanés<select id="concurrency">${opts([['1', '1 tâche'], ['2', '2 tâches'], ['3', '3 tâches']], String(s.concurrency))}</select></label><label>Débit par tâche (Kio/s, 0 = illimité)<input id="rate" type="number" min="0" value="${s.rateKiB}"></label><label>Pause après ce volume (Go, 0 = désactivé)<input id="quota" type="number" min="0" step="0.1" value="${s.quotaBytes / 1e9}"></label><div><label>Volume actuel</label><p class="section-gap">${bytes(data.state.usedBytes)} <button type="button" class="small" id="reset-quota">Réinitialiser</button></p></div></div><p class="footer-note">Le compteur est conservé au redémarrage. Le réinitialiser met les tâches en pause et attend votre clic pour reprendre. Un même site et dossier, ou un même compte, est traité par une seule tâche à la fois pour éviter les conflits.</p></section><section class="panel settings-panel"><h2>Médias par défaut</h2><div class="section-gap">${extensions('global', s.filters)}</div><p class="footer-note">Les extensions filtrent les fichiers disponibles à la source. Aucun transcodage automatique. Les extensions personnalisées inconnues sont classées comme images.</p></section><section class="panel settings-panel"><h2>Moteurs</h2><div id="engines" class="section-gap muted">Vérification des versions…</div><details><summary>Chemins personnalisés (facultatifs)</summary><div class="form-grid"><label class="full">gallery-dl${pathInput('gallery-path', s.galleryPath, 'Utiliser le moteur du paquet', 'engine')}</label><label class="full">yt-dlp${pathInput('ytdlp-path', s.ytdlpPath, 'Utiliser le moteur du paquet', 'engine')}</label></div></details><p class="footer-note">Données : <code>${esc(data.dataDir)}</code><br>Le paquet garde les outils dans tools/ et les données dans data/.</p><div class="settings-footer"><button class="primary">Enregistrer les paramètres</button></div></section></form>`; preview(); run(async () => { const es = await api('engines'); if (page === 'settings')
     $('#engines').innerHTML = es.map((e) => `<div class="engine"><span>${esc(e.name)}</span><span>${e.error ? `<span class="error">${esc(e.error)}</span>` : `<code>${esc(e.version)}</code>`}</span></div>`).join(''); }); }
 function preview() { if (!$('#path-preview'))
     return; let p = val('global-dest') || 'Destination'; const l = val('global-layout'); if (l === 'site' || l === 'creator')
@@ -132,9 +181,9 @@ function preview() { if (!$('#path-preview'))
     p += (data.platform === 'linux' ? '/' : '\\') + 'nom_artiste'; p += (data.platform === 'linux' ? '/' : '\\') + 'identifiant_titre.jpg'; $('#path-preview').textContent = p; }
 function showModal(content) { modalJob = ''; $('#modal-content').innerHTML = content; const d = $('#modal'); if (!d.open)
     d.showModal(); }
-function closeModal() { modalJob = ''; $('#modal').close(); }
+function closeModal() { modalJob = ''; $('#modal').close(); $('#modal-content').innerHTML = ''; }
 async function openDetail(id) { const j = data.state.jobs.find(x => x.id === id); if (!j)
-    return; showModal(`<div class="modal-head"><h2>Détails du téléchargement</h2><button data-close>×</button></div><div class="detail-grid"><span>Source</span><span>${esc(j.url)}</span><span>Destination</span><span>${esc(j.destination)}</span><span>Compte</span><span>${esc(jobProfileLabel(j))}</span><span>Ajout</span><span>${date(j.added)}</span><span>Dernier démarrage</span><span>${date(j.started)}</span><span>État</span><span>${esc(statuses[j.status])} · code ${j.exitCode}</span><span>Message</span><span class="error">${esc(j.error || '—')}</span></div>${j.status !== 'running' ? `<form id="job-profile-form" data-job-id="${j.id}" class="section-gap"><label>Compte pour cette tâche<select id="detail-profile">${opts([['inherit', 'Compte par défaut du site'], ['', 'Sans compte'], ...data.state.profiles.filter(p => p.site === j.site || p.site === 'generic').map(p => [p.id, p.name])], jobProfileMode(j) === 'inherit' ? 'inherit' : jobProfileMode(j) === 'none' ? '' : j.profileId)}</select></label><div class="settings-footer"><button class="primary">Enregistrer le compte de cette tâche</button></div></form>` : ''}<h3>Journal</h3><pre id="logs" class="logs section-gap">Chargement…</pre><div class="settings-footer"><button data-action="cancel" data-id="${j.id}" class="danger">Annuler cette tâche</button><button data-close>Fermer</button></div>`); modalJob = id; await refreshLog(); }
+    return; showModal(`<div class="modal-head"><h2>Détails du téléchargement</h2><button data-close>×</button></div><div class="detail-grid"><span>Source</span><span>${esc(j.url)}</span><span>Destination</span><span>${esc(j.destination)}<br><small class="muted">${j.started ? 'Dossier conservé pour la reprise' : j.destinationMode === 'inherit' ? 'Dossier du site ou global, actualisé au premier départ' : j.destinationMode === 'explicit' ? 'Dossier personnalisé pour cette tâche' : 'Ancienne tâche : dossier fixé à l’ajout'}</small></span><span>Compte</span><span>${esc(jobProfileLabel(j))}</span><span>Ajout</span><span>${date(j.added)}</span><span>Dernier démarrage</span><span>${date(j.started)}</span><span>État</span><span>${esc(statuses[j.status])} · code ${j.exitCode}</span><span>Message</span><span class="error">${esc(j.error || '—')}</span></div>${j.status !== 'running' ? `<form id="job-profile-form" data-job-id="${j.id}" class="section-gap"><label>Compte pour cette tâche<select id="detail-profile">${opts([['inherit', 'Compte par défaut du site'], ['', 'Sans compte'], ...data.state.profiles.filter(p => p.site === j.site || p.site === 'generic').map(p => [p.id, p.name])], jobProfileMode(j) === 'inherit' ? 'inherit' : jobProfileMode(j) === 'none' ? '' : j.profileId)}</select></label><div class="settings-footer"><button class="primary">Enregistrer le compte de cette tâche</button></div></form>` : ''}<h3>Journal</h3><pre id="logs" class="logs section-gap">Chargement…</pre><div class="settings-footer"><button data-action="cancel" data-id="${j.id}" class="danger">Annuler cette tâche</button><button data-close>Fermer</button></div>`); modalJob = id; await refreshLog(); }
 async function refreshLog() { const id = modalJob; const logs = await api('logs?id=' + encodeURIComponent(id)); if (modalJob === id && $('#logs'))
     $('#logs').textContent = logs.length ? logs.map((l) => `${date(l.at)}  ${l.line}`).join('\n') : 'Aucun message pour le moment.'; }
 document.addEventListener('click', e => {
@@ -143,6 +192,8 @@ document.addEventListener('click', e => {
         return;
     run(async () => {
         if (b.dataset.page) {
+            if (page === 'settings')
+                await saveGlobalDestination();
             page = b.dataset.page;
             renderPage();
             return;
@@ -153,8 +204,11 @@ document.addEventListener('click', e => {
         }
         if (b.dataset.pick) {
             const r = await api('pick', { kind: b.dataset.kind || 'directory' });
-            if (r.path)
+            if (r.path) {
                 $('#' + b.dataset.pick).value = r.path;
+                if (b.dataset.pick === 'global-dest')
+                    await saveGlobalDestination();
+            }
             preview();
             return;
         }
@@ -196,6 +250,49 @@ document.addEventListener('click', e => {
             return;
         }
         switch (b.id) {
+            case 'backup-pause': {
+                b.setAttribute('disabled', '');
+                try {
+                    await api('queue/pause', {});
+                    const until = Date.now() + 30000;
+                    do {
+                        await load(true);
+                        const status = $('#backup-queue-status');
+                        if (status)
+                            status.textContent = data.state.active ? 'Arrêt des tâches en cours…' : 'File en pause : vous pouvez importer.';
+                        if (!data.state.active)
+                            break;
+                        if (Date.now() > until)
+                            throw Error('Arrêt toujours en cours. Attendez puis réessayez.');
+                        await new Promise(r => setTimeout(r, 200));
+                    } while (true);
+                }
+                finally {
+                    b.removeAttribute('disabled');
+                }
+                return;
+            }
+            case 'backup-export':
+                openBackup('export');
+                return;
+            case 'backup-import':
+                openBackup('import');
+                return;
+            case 'refresh-destinations': {
+                const ids = data.state.jobs.filter(canRefreshDestination).map(j => j.id);
+                if (!ids.length) {
+                    toast('Aucune tâche éligible.');
+                    return;
+                }
+                if (data.state.running || data.state.active)
+                    throw Error('Mettez la file en pause et attendez l’arrêt des tâches.');
+                if (!confirm(`Appliquer le dossier du site ou le dossier global aux ${ids.length} tâches jamais démarrées ? Les tâches commencées et les destinations personnalisées sont conservées.`))
+                    return;
+                for (let i = 0; i < ids.length; i += 500)
+                    await api('jobs/destinations', { ids: ids.slice(i, i + 500) });
+                toast('Destinations actualisées. Reprise manuelle.');
+                break;
+            }
             case 'start-all':
                 await api('queue/start', {});
                 break;
@@ -226,7 +323,9 @@ document.addEventListener('click', e => {
             renderSettings();
     });
 });
-document.addEventListener('change', e => { const el = e.target; if (el.id === 'override-media')
+document.addEventListener('change', e => { const el = e.target; if (el.id === 'global-dest')
+    run(saveGlobalDestination); if (el.id === 'site-use-global')
+    updateSiteDestination(); if (el.id === 'override-media')
     $('#job-filter-options').classList.toggle('hidden', !el.checked); if (el.id === 'site-media-override')
     $('#site-filter-options').classList.toggle('hidden', !el.checked); if (el.id === 'profile-method')
     toggleMethod(); if (el.id === 'profile-select')
@@ -239,8 +338,12 @@ document.addEventListener('change', e => { const el = e.target; if (el.id === 'o
 document.addEventListener('input', e => { const el = e.target; if (el.id === 'history-search') {
     search = el.value;
     updateJobs();
-} if (el.id === 'global-dest')
-    preview(); if (el.id === 'urls') {
+} if (el.id === 'global-dest') {
+    preview();
+    const status = $('#global-save-status');
+    status.className = 'footer-note';
+    status.textContent = 'Dossier modifié — enregistrement à la sortie du champ.';
+} if (el.id === 'urls') {
     const lines = el.value.split(/\r?\n/).filter(x => x.trim());
     const hosts = new Set(lines.map(x => { try {
         return new URL(x).hostname.replace(/^www\./, '');
@@ -258,6 +361,10 @@ document.addEventListener('submit', e => {
         if (button)
             button.disabled = true;
         try {
+            if (form.id === 'backup-form') {
+                await submitBackup(form);
+                return;
+            }
             if (form.id === 'add-form') {
                 const p = val('job-profile');
                 const body = { urls: val('urls').split(/\r?\n/).map(x => x.trim()).filter(Boolean), destination: val('job-dest'), layout: val('job-layout') };
@@ -272,6 +379,7 @@ document.addEventListener('submit', e => {
                 await load(true);
             }
             if (form.id === 'settings-form') {
+                await saveGlobalDestination();
                 const s = { ...data.state.settings, destination: val('global-dest'), layout: val('global-layout'), filename: val('global-filename'), filters: readFilters('global'), concurrency: Number(val('concurrency')), quotaBytes: Math.round(Number(val('quota')) * 1e9), rateKiB: Number(val('rate')), galleryPath: val('gallery-path'), ytdlpPath: val('ytdlp-path') };
                 await api('settings', s);
                 await load(true);
@@ -279,7 +387,7 @@ document.addEventListener('submit', e => {
             }
             if (form.id === 'site-form') {
                 const id = form.dataset.siteId;
-                const sc = { destination: val('site-dest'), layout: val('site-layout'), filename: val('site-filename'), profileId: val('site-default') };
+                const sc = { destination: check('site-use-global') ? '' : val('site-dest').trim(), layout: val('site-layout'), filename: val('site-filename'), profileId: val('site-default') };
                 if (check('site-media-override'))
                     sc.filters = readFilters('site');
                 const s = { ...data.state.settings, sites: { ...data.state.settings.sites, [id]: sc } };
@@ -309,6 +417,47 @@ document.addEventListener('submit', e => {
         }
     });
 });
-$('#modal').addEventListener('close', () => modalJob = '');
+$('#modal').addEventListener('close', () => { modalJob = ''; $('#modal-content').innerHTML = ''; });
 run(load);
 setInterval(() => run(load), 1200);
+function canRefreshDestination(j) { return !j.started && !j.bytes && !j.files && !j.skipped && !['running', 'completed', 'cancelled'].includes(j.status) && j.destinationMode !== 'explicit'; }
+function openBackup(mode) {
+    const exporting = mode === 'export';
+    showModal(`<div class="modal-head"><h2>${exporting ? 'Exporter les sites et comptes' : 'Importer les sites et comptes'}</h2><button data-close>×</button></div>
+ <div class="notice">${exporting ? 'Cette sauvegarde contient vos clés, tokens et cookies de connexion. Toute personne possédant le fichier et la phrase secrète pourra accéder à ces comptes.' : 'Importez uniquement une sauvegarde de confiance. Les comptes seront ajoutés au coffre de cette session ; aucun téléchargement ne sera lancé.'}</div>
+ <form id="backup-form" data-mode="${mode}" class="section-gap"><div class="form-grid">
+ <label class="full">${exporting ? 'Nouveau fichier de sauvegarde' : 'Fichier de sauvegarde'}${pathInput('backup-path', '', 'Fichier .dlmbackup', exporting ? 'backup-export' : 'backup-import')}</label>
+ <label class="full">Phrase secrète (16 caractères minimum)<input id="backup-phrase" type="password" autocomplete="${exporting ? 'new-password' : 'off'}" required></label>
+ ${exporting ? `<label class="full">Confirmer la phrase secrète<input id="backup-confirm" type="password" autocomplete="new-password" required></label>
+ <label class="full check"><input id="backup-ack" type="checkbox" required>Je comprends que ce fichier contient mes accès aux comptes.</label>` : `<label class="full check"><input id="backup-replace" type="checkbox">Remplacer les réglages des sites déjà configurés</label>`}
+ </div><p class="footer-note">${exporting ? 'Le fichier est chiffré. Choisissez une phrase longue et unique : elle ne sera pas enregistrée et ne pourra pas être récupérée. Utilisez un nouveau nom de fichier à chaque export.' : 'Les comptes existants sont conservés. Réimporter le même fichier ajoute des doublons. Les chemins incompatibles avec cet OS héritent du dossier global ; vérifiez vos destinations après l’import.'}<br>${exporting ? 'L’export est possible pendant les téléchargements.' : 'L’import nécessite une file en pause et l’arrêt des tâches actives.'} Les téléchargements, l’historique et les réglages globaux ne font pas partie de cette sauvegarde.</p>
+ ${!exporting ? '<div class="row wrap"><button type="button" id="backup-pause">Mettre la file en pause</button><span id="backup-queue-status" class="smalltext muted" role="status"></span></div>' : ''}
+ <div class="settings-footer"><button type="button" data-close>Annuler</button><button class="primary" type="submit">${exporting ? 'Chiffrer et exporter' : 'Déchiffrer et importer'}</button></div></form>`);
+}
+async function submitBackup(form) {
+    const exporting = form.dataset.mode === 'export';
+    const phrase = val('backup-phrase');
+    if ([...phrase].length < 16)
+        throw Error('La phrase secrète doit contenir au moins 16 caractères.');
+    if (exporting && phrase !== val('backup-confirm'))
+        throw Error('Les deux phrases secrètes ne correspondent pas.');
+    const body = { path: val('backup-path'), passphrase: phrase };
+    if (exporting) {
+        body.confirmation = val('backup-confirm');
+        body.acknowledge = check('backup-ack');
+    }
+    else
+        body.replaceSites = check('backup-replace');
+    try {
+        const r = await api(exporting ? 'backup/export' : 'backup/import', body);
+        closeModal();
+        await load(true);
+        renderAccounts();
+        toast(exporting ? `Sauvegarde chiffrée créée : ${r.accounts} compte(s), ${r.sites} site(s).` : `Import terminé : ${r.accounts} compte(s) ajouté(s), ${r.sites} site(s) appliqué(s).${r.resetPaths ? ' ' + r.resetPaths + ' chemin(s) remis au dossier global.' : ''}`);
+    }
+    finally {
+        form.querySelectorAll('input[type=password]').forEach(input => input.value = '');
+        body.passphrase = '';
+        body.confirmation = '';
+    }
+}
