@@ -3,6 +3,7 @@ package web
 import (
 	"dl-manager/internal/downloader"
 	"dl-manager/internal/model"
+	"dl-manager/internal/oauthflow"
 	"dl-manager/internal/platform"
 	"dl-manager/internal/queue"
 	"dl-manager/internal/storage"
@@ -23,6 +24,7 @@ type CredentialVault interface {
 }
 
 type API struct {
+	OAuth    *oauthflow.Service
 	backupMu sync.Mutex
 	Store    *storage.Store
 	Manager  *queue.Manager
@@ -37,7 +39,7 @@ type API struct {
 }
 
 func New(s *storage.Store, m *queue.Manager, v CredentialVault, data, tools string) *API {
-	return &API{Store: s, Manager: m, Vault: v, DataDir: data, ToolsDir: tools, Token: model.ID()}
+	return &API{Store: s, Manager: m, Vault: v, DataDir: data, ToolsDir: tools, Token: model.ID(), OAuth: oauthflow.New(filepath.Join(data, "temporary"))}
 }
 func reply(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -74,6 +76,11 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	var e error
 	switch r.Method + " " + r.URL.Path {
+	case "POST /api/oauth/start", "POST /api/oauth/status", "POST /api/oauth/result", "POST /api/oauth/cancel", "POST /api/oauth/open":
+		e = a.oauth(w, r)
+		if e == nil {
+			return
+		}
 	case "GET /api/state":
 		state, err := a.Manager.Snapshot()
 		if err != nil {

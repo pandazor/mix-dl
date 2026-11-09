@@ -106,6 +106,7 @@ async function openSite(id, profile) {
     await showProfileEditor(id, selected);
 }
 async function showProfileEditor(siteId, id) {
+    cancelOAuth();
     const site = data.sites.find(x => x.id === siteId);
     const p = data.state.profiles.find(p => p.id === id);
     $('#account-editor').textContent = 'Lecture du compte…';
@@ -124,14 +125,93 @@ async function showProfileEditor(siteId, id) {
  <label id="userid-field">User ID<input id="profile-user" value="${esc(saved.userId || '')}" inputmode="numeric" autocomplete="off"></label>
  <label id="token-field">Token / API Key<input id="profile-token" type="password" autocomplete="new-password" placeholder="${saved.hasToken ? 'Clé enregistrée — laisser vide pour la conserver' : 'Saisir la clé'}"></label>
  <label id="secret-field">OAuth Token Secret<input id="profile-secret" type="password" autocomplete="new-password" placeholder="${saved.hasTokenSecret ? 'Secret enregistré — laisser vide pour le conserver' : 'Saisir le secret'}"></label>
+${['tumblr', 'deviantart'].includes(siteId) ? `<div id="oauth-controls" class="full"><p class="footer-note">Vous devrez vous connecter dans votre navigateur et autoriser gallery-dl. Les tokens rempliront les champs ci-dessus ; enregistrez ensuite le compte.</p><div class="row section-gap"><button type="button" id="oauth-start">Générer le token</button><button type="button" id="oauth-cancel" class="hidden">Annuler la connexion</button><button type="button" id="oauth-open" class="hidden">Ouvrir le navigateur</button></div><input id="oauth-url" class="hidden section-gap" aria-label="Lien de connexion" readonly><p id="oauth-status" class="footer-note" role="status"></p></div>` : ""}
  <label class="full check"><input type="checkbox" id="profile-default" ${(p ? isDefault === id : !isDefault) ? 'checked' : ''}>Utiliser ce compte par défaut pour ce site</label></div>
  <p class="footer-note">Le compte par défaut s'applique aussi aux tâches existantes réglées sur « Compte par défaut du site ». Un changement de méthode demande les nouveaux identifiants.</p>
  <div class="settings-footer"><button class="primary">Enregistrer le compte</button></div></form>`;
     toggleMethod();
 }
+let oauthAttempt = null;
+function cancelOAuth() { const a = oauthAttempt; if (!a)
+    return; oauthAttempt = null; a.cancelled = true; if (a.id)
+    api('oauth/cancel', { id: a.id }).catch(() => { }); if (a.form.isConnected) {
+    a.form.querySelector('#oauth-start').disabled = false;
+    a.form.querySelector('button.primary').disabled = false;
+    a.form.querySelector('#oauth-cancel').classList.add('hidden');
+    a.form.querySelector('#oauth-open').classList.add('hidden');
+    const link = a.form.querySelector('#oauth-url');
+    link.value = '';
+    link.classList.add('hidden');
+} }
+async function generateOAuth() {
+    const form = $('#profile-form');
+    if (!form || oauthAttempt)
+        return;
+    const a = { id: '', form, cancelled: false };
+    oauthAttempt = a;
+    const current = () => oauthAttempt === a && !a.cancelled && form.isConnected;
+    const status = form.querySelector('#oauth-status');
+    form.querySelector('#oauth-start').disabled = true;
+    form.querySelector('button.primary').disabled = true;
+    form.querySelector('#oauth-cancel').classList.remove('hidden');
+    status.textContent = 'Préparation de la connexion…';
+    status.className = 'footer-note';
+    try {
+        const started = await api('oauth/start', { site: form.dataset.siteId });
+        a.id = started.id;
+        if (!current()) {
+            await api('oauth/cancel', { id: a.id });
+            return;
+        }
+        let opened = false;
+        while (current()) {
+            const v = await api('oauth/status', { id: a.id });
+            if (!current())
+                return;
+            if (v.state === 'failed')
+                throw Error(v.error || 'Connexion interrompue.');
+            if (v.state === 'completed') {
+                const c = await api('oauth/result', { id: a.id });
+                if (!current())
+                    return;
+                $('#profile-token').value = c.token;
+                $('#profile-secret').value = c.tokenSecret || '';
+                status.textContent = 'Token reçu. Cliquez sur Enregistrer le compte pour le conserver.';
+                return;
+            }
+            status.textContent = 'Connectez-vous dans le navigateur et autorisez gallery-dl. Attente du retour…';
+            if (v.url && !opened) {
+                opened = true;
+                const link = form.querySelector('#oauth-url');
+                link.value = v.url;
+                link.classList.remove('hidden');
+                form.querySelector('#oauth-open').classList.remove('hidden');
+                try {
+                    await api('oauth/open', { id: a.id });
+                }
+                catch {
+                    if (current())
+                        status.textContent = 'Ouvrez le lien affiché dans votre navigateur pour vous connecter.';
+                }
+            }
+            await new Promise(r => setTimeout(r, 500));
+        }
+    }
+    catch (e) {
+        if (current()) {
+            status.textContent = e.message;
+            status.className = 'footer-note error';
+        }
+    }
+    finally {
+        if (oauthAttempt === a)
+            cancelOAuth();
+    }
+}
 function jobProfileMode(j) { return j.profileMode || (j.profileId ? 'explicit' : 'inherit'); }
 function jobProfileLabel(j) { const mode = jobProfileMode(j); const id = mode === 'inherit' ? data.state.settings.sites[j.site]?.profileId : j.profileId; const p = data.state.profiles.find(x => x.id === id); return mode === 'none' ? 'Sans compte' : (mode === 'inherit' ? 'Par défaut : ' : '') + (p?.name || 'Sans compte'); }
-function toggleMethod() { const m = val('profile-method'); $('#cookie-field').classList.toggle('hidden', m !== 'cookies'); $('#userid-field').classList.toggle('hidden', m !== 'api'); $('#token-field').classList.toggle('hidden', m === 'cookies'); $('#secret-field').classList.toggle('hidden', m !== 'oauth1'); }
+function toggleMethod() { cancelOAuth(); const m = val('profile-method'); const controls = $('#oauth-controls'); if (controls)
+    controls.classList.toggle('hidden', m === 'cookies'); $('#cookie-field').classList.toggle('hidden', m !== 'cookies'); $('#userid-field').classList.toggle('hidden', m !== 'api'); $('#token-field').classList.toggle('hidden', m === 'cookies'); $('#secret-field').classList.toggle('hidden', m !== 'oauth1'); }
 let destinationSave = Promise.resolve();
 async function saveGlobalDestination() {
     const input = $('#global-dest');
@@ -186,9 +266,9 @@ function preview() { if (!$('#path-preview'))
     return; let p = val('global-dest') || 'Destination'; const l = val('global-layout'); if (l === 'site' || l === 'creator')
     p += (data.platform === 'linux' ? '/' : '\\') + 'artstation'; if (l === 'creator')
     p += (data.platform === 'linux' ? '/' : '\\') + 'nom_artiste'; p += (data.platform === 'linux' ? '/' : '\\') + 'identifiant_titre.jpg'; $('#path-preview').textContent = p; }
-function showModal(content) { modalJob = ''; $('#modal-content').innerHTML = content; const d = $('#modal'); if (!d.open)
+function showModal(content) { cancelOAuth(); modalJob = ''; $('#modal-content').innerHTML = content; const d = $('#modal'); if (!d.open)
     d.showModal(); }
-function closeModal() { modalJob = ''; $('#modal').close(); $('#modal-content').innerHTML = ''; }
+function closeModal() { cancelOAuth(); modalJob = ''; $('#modal').close(); $('#modal-content').innerHTML = ''; }
 async function openDetail(id) { const j = data.state.jobs.find(x => x.id === id); if (!j)
     return; showModal(`<div class="modal-head"><h2>Détails du téléchargement</h2><button data-close>×</button></div><div class="detail-grid"><span>Source</span><span>${esc(j.url)}</span><span>Destination</span><span>${esc(j.destination)}<br><small class="muted">${j.started ? 'Dossier conservé pour la reprise' : j.destinationMode === 'inherit' ? 'Dossier du site ou global, actualisé au premier départ' : j.destinationMode === 'explicit' ? 'Dossier personnalisé pour cette tâche' : 'Ancienne tâche : dossier fixé à l’ajout'}</small></span><span>Compte</span><span>${esc(jobProfileLabel(j))}</span><span>Ajout</span><span>${date(j.added)}</span><span>Dernier démarrage</span><span>${date(j.started)}</span><span>État</span><span>${esc(statuses[j.status])} · code ${j.exitCode}</span><span>Message</span><span class="error">${esc(jobErrorMessage(j) || '—')}</span></div>${j.status !== 'running' ? `<form id="job-profile-form" data-job-id="${j.id}" class="section-gap"><label>Compte pour cette tâche<select id="detail-profile">${opts([['inherit', 'Compte par défaut du site'], ['', 'Sans compte'], ...data.state.profiles.filter(p => p.site === j.site || p.site === 'generic').map(p => [p.id, p.name])], jobProfileMode(j) === 'inherit' ? 'inherit' : jobProfileMode(j) === 'none' ? '' : j.profileId)}</select></label><div class="settings-footer"><button class="primary">Enregistrer le compte de cette tâche</button></div></form>` : ''}<h3>Journal</h3><pre id="logs" class="logs section-gap">Chargement…</pre><div class="settings-footer"><button data-action="cancel" data-id="${j.id}" class="danger">Annuler cette tâche</button><button data-close>Fermer</button></div>`); modalJob = id; await refreshLog(); }
 async function refreshLog() { const id = modalJob; const logs = await api('logs?id=' + encodeURIComponent(id)); if (modalJob === id && $('#logs'))
@@ -198,6 +278,20 @@ document.addEventListener('click', e => {
     if (!b)
         return;
     run(async () => {
+        if (b.id === 'oauth-start') {
+            await generateOAuth();
+            return;
+        }
+        if (b.id === 'oauth-cancel') {
+            cancelOAuth();
+            $('#oauth-status').textContent = 'Connexion annulée.';
+            return;
+        }
+        if (b.id === 'oauth-open') {
+            if (oauthAttempt?.id)
+                await api('oauth/open', { id: oauthAttempt.id });
+            return;
+        }
         if (b.dataset.page) {
             if (page === 'settings')
                 await saveGlobalDestination();
@@ -424,7 +518,7 @@ document.addEventListener('submit', e => {
         }
     });
 });
-$('#modal').addEventListener('close', () => { modalJob = ''; $('#modal-content').innerHTML = ''; });
+$('#modal').addEventListener('close', () => { cancelOAuth(); modalJob = ''; $('#modal-content').innerHTML = ''; });
 run(load);
 setInterval(() => run(load), 1200);
 function canRefreshDestination(j) { return !j.started && !j.bytes && !j.files && !j.skipped && !['running', 'completed', 'cancelled'].includes(j.status) && j.destinationMode !== 'explicit'; }

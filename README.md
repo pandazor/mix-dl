@@ -64,9 +64,15 @@ Ouvrir **Comptes & sites**, puis choisir une plateforme.
 | Tumblr | OAuth Token + Token Secret, ou cookies selon le contenu |
 | Autres sites | Cookies facultatifs ; compatibilité dépendant de gallery-dl |
 
-Les connexions et exports se font manuellement dans votre navigateur. Les guides
-de chaque site sont accessibles depuis l'application. Aucun ancien token n'est
-récupéré automatiquement. Les contenus publics compatibles restent accessibles
+Pour Tumblr et DeviantArt, **Générer le token** ouvre votre navigateur : connectez-vous
+et autorisez gallery-dl. Les champs sont remplis au retour ; cliquez ensuite sur
+**Enregistrer le compte**. Une seule connexion peut être ouverte à la fois, pendant
+cinq minutes maximum. Fermer le dialogue ou cliquer sur **Annuler la connexion**
+arrête cette tentative. Aucun mot de passe n'est demandé par dl-manager.
+Les tokens restent en mémoire jusqu'à l'enregistrement dans le coffre ; ils ne
+sont pas ajoutés aux journaux. Le port local 6414 doit être disponible.
+La saisie manuelle et les exports de cookies depuis le navigateur restent disponibles.
+Aucun ancien token n'est récupéré automatiquement. Les contenus publics compatibles restent accessibles
 sans compte.
 
 Le premier compte est proposé comme **Compte par défaut**. La case peut être

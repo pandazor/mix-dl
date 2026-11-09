@@ -58,6 +58,24 @@ try{
  await page.setViewportSize({width:840,height:620});
  await page.screenshot({path:join(dir,'site-inheritance.png'),fullPage:true});
  await page.locator('#modal [data-close]').first().click();
+ // OAuth provider boundary only: the real UI must fill and save the returned values.
+ await page.locator('[data-page=accounts]').click();await page.locator('[data-site=deviantart]').click();
+ await page.locator('#oauth-start').waitFor({timeout:3000});
+ let oauthState='completed';let oauthStartGate;let releaseOAuthStart;let oauthCancelled=0;
+ await page.route('**/api/oauth/start',async route=>{if(oauthStartGate)await oauthStartGate;await route.fulfill({json:{id:'synthetic-oauth'}})});
+ await page.route('**/api/oauth/status',route=>route.fulfill({json:{id:'synthetic-oauth',state:oauthState,error:oauthState==='failed'?'Autorisation refusée':''}}));
+ await page.route('**/api/oauth/result',route=>route.fulfill({json:{method:'token',userId:'',token:'UI_SYNTHETIC_REFRESH',tokenSecret:'',cookies:''}}));
+ await page.route('**/api/oauth/cancel',route=>{oauthCancelled++;return route.fulfill({json:{ok:true}})});
+ await page.locator('#oauth-start').click();await waitUntil(async()=>await page.locator('#profile-token').inputValue()==='UI_SYNTHETIC_REFRESH','OAuth fields were not filled');
+ assert.equal((await state()).profiles.length,0);
+ await page.locator('#profile-form button.primary').click();await page.locator('#modal').waitFor({state:'hidden'});
+ assert.equal((await state()).profiles[0].site,'deviantart');
+ await page.locator('[data-site=deviantart]').click();oauthState='failed';await page.locator('#oauth-start').click();await waitUntil(async()=>/refusée/.test(await page.locator('#oauth-status').innerText()),'OAuth refusal not visible');assert.equal(await page.locator('#profile-token').inputValue(),'');
+ oauthState='completed';oauthStartGate=new Promise(resolve=>releaseOAuthStart=resolve);
+ const cancelBeforeLate=oauthCancelled;await page.locator('#oauth-start').click();await page.locator('#modal [data-close]').first().click();await page.locator('[data-site=tumblr]').click();releaseOAuthStart();oauthStartGate=null;
+ await waitUntil(async()=>oauthCancelled>cancelBeforeLate,'Late authorization not cancelled');assert.equal(await page.locator('#profile-token').inputValue(),'');assert.equal(await page.locator('#profile-secret').inputValue(),'');
+ await page.locator('#modal [data-close]').first().click();
+ oauthState='waiting';await page.locator('[data-site=deviantart]').click();await page.locator('#oauth-start').click();await page.locator('#oauth-cancel').waitFor();const cancelBeforeEscape=oauthCancelled;await page.keyboard.press('Escape');await waitUntil(async()=>oauthCancelled>cancelBeforeEscape,'Escape did not cancel authorization');
  // Exercise the public state contract without accessing Tumblr or real credentials.
  const fixture=await (await fetch(url+'/api/state')).json();
  const failed={id:'test-tumblr-quota',url:'https://www.tumblr.com/test-only',site:'tumblr',destination:picked,destinationMode:'inherit',layout:'site_creator',filename:'site',profileId:'',profileMode:'none',status:'failed',added:'2026-11-09T14:17:11Z',started:'2026-11-09T14:17:11Z',ended:'2026-11-09T14:17:13Z',error:'[tumblr][error] Aborting - Rate limit will reset at 19:06:46',exitCode:4,bytes:0,files:0,skipped:0,current:'',order:0};

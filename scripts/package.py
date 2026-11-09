@@ -62,6 +62,8 @@ def source_entries(platforms):
              'docs/superpowers/specs/2026-11-09-0.3.1-design.md',
              'docs/releases/0.3.1.md',
              'docs/releases/0.3.2.md',
+             'docs/superpowers/plans/2026-11-09-0.4.0.md',
+             'docs/superpowers/specs/2026-11-09-0.4.0-design.md',
              'docs/superpowers/plans/2026-11-09-visible-errors.md']
     if (ROOT / '.gitattributes').is_file():
         names.append('.gitattributes')
