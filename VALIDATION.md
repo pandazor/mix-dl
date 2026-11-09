@@ -32,6 +32,15 @@ Validation du 9 novembre 2026, Windows x64.
 - TypeScript et compilations Windows/Linux vérifiés. Aucun changement de l'instance
   utilisateur en cours, de son coffre ou de ses téléchargements.
 
+## Retours d'essais utilisateur — 9 novembre 2026
+
+- Rule34 : premier retour positif sur les téléchargements ; les essais continuent.
+- Dossier global : nouvel essai utilisateur encore à effectuer après activation
+  de l'héritage et, pour les anciennes tâches jamais démarrées, actualisation
+  des destinations. Les tests automatisés ci-dessus ne remplacent pas cet essai.
+- Instagram : prochains essais annoncés ; aucun résultat utilisateur confirmé
+  à ce stade.
+
 ## Limites 0.3.0
 
 Le contrôle UI utilise le mode aperçu HTTP local. Les nouveaux sélecteurs de

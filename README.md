@@ -190,16 +190,30 @@ aucun secret ou téléchargement personnel dans le dépôt.
 
 ## Destinations et sauvegardes — 0.3.0
 
-Le dossier effectif suit cet ordre : **dossier saisi pour la tâche > dossier du site > dossier global**. Laisser le dossier du site vide active l'héritage du global.
+Le dossier effectif suit cet ordre : **dossier saisi pour la tâche > dossier du site > dossier global**.
+
+Pour activer la prise en compte du dossier global :
+
+1. Dans **Paramètres**, renseigner le **Dossier global de téléchargement**, puis
+   cliquer sur **Enregistrer les paramètres**.
+2. Dans **Comptes & sites**, sélectionner le site, **vider le champ Dossier propre
+   à ce site**, puis cliquer sur **Enregistrer les réglages du site**. Un dossier
+   renseigné ici reste prioritaire sur le global.
+3. À l'ajout des liens, laisser aussi le champ **Destination** vide dans
+   **Options pour ces téléchargements** pour conserver cet héritage.
+
 Pour les nouvelles tâches héritées, le dossier est résolu au premier démarrage :
 un changement de réglage avant ce départ est donc pris en compte. Dès qu'une tâche
 a commencé, son dossier reste fixe pour préserver ses fichiers partiels et sa reprise.
 
 Les tâches créées en 0.1/0.2 ne distinguaient pas un dossier hérité d'un choix
-personnel. Mettre la file en pause, puis utiliser **Actualiser les destinations
-en attente** pour réappliquer site/global aux tâches jamais démarrées. Les tâches
-commencées, les téléchargements et les destinations explicitement personnalisées
-par 0.3.0 sont conservés. Ce bouton ne déplace aucun fichier.
+personnel. Après avoir enregistré les réglages ci-dessus, cliquer sur **Tout
+mettre en pause**, attendre l'arrêt des tâches actives, puis utiliser
+**Actualiser les destinations en attente** pour réappliquer site/global aux tâches
+jamais démarrées. Cliquer ensuite sur **Démarrer / reprendre** pour relancer la file.
+Les tâches commencées, les téléchargements et les destinations explicitement
+personnalisées par 0.3.0 sont conservés. L'actualisation ne déplace aucun fichier
+et ne relance pas les téléchargements automatiquement.
 
 Avec **Site / Créateur**, choisir par exemple `G:\dl-a-trier` comme dossier global :
 Rule34 ajoutera `rule34\nom_artiste`. Si le global se termine déjà par `rule34`,
