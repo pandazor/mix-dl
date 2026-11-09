@@ -23,3 +23,7 @@ Go/Wails/SQLite retenus dans le cahier des charges. Python/Qt (fork de Beyond) c
 
 ## Emplacement de travail
 La session actuelle permet d'écrire dans son espace de travail, pas dans G:\Documents\ChatGPT. Les sources et le paquet sont préparés ici et livrés pour extraction dans G:\Documents\ChatGPT\dl-manager. Aucun changement global du système ou du Python existant.
+
+## Évolution 0.4.0 — 9 novembre 2026
+
+Windows et Linux sont désormais ciblés. Connexion OAuth guidée pour Tumblr/DeviantArt et fiches de sites personnalisés nommées : voir docs/superpowers/specs/2026-11-09-0.4.0-design.md. La connexion et le consentement restent manuels dans le navigateur ; les nouveaux tokens sont récupérés par le moteur puis remplis dans le formulaire. Les fiches personnalisées restent séparées du catalogue d’extracteurs gallery-dl. Le projet est publié sous AGPL-3.0-only ; composants tiers sous leurs licences respectives.

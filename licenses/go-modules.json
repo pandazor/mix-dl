@@ -112,6 +112,13 @@
     ]
   },
   {
+    "module": "golang.org/x/net",
+    "version": "v0.62.0",
+    "licenses": [
+      "LICENSE"
+    ]
+  },
+  {
     "module": "golang.org/x/sync",
     "version": "v0.24.0",
     "licenses": [
@@ -127,7 +134,7 @@
   },
   {
     "module": "golang.org/x/term",
-    "version": "v0.46.0",
+    "version": "v0.47.0",
     "licenses": [
       "LICENSE"
     ]

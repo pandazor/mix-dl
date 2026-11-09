@@ -81,13 +81,18 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if e == nil {
 			return
 		}
+	case "POST /api/custom-site", "POST /api/custom-site/delete":
+		e = a.customSite(w, r)
+		if e == nil {
+			return
+		}
 	case "GET /api/state":
 		state, err := a.Manager.Snapshot()
 		if err != nil {
 			e = err
 			break
 		}
-		reply(w, map[string]any{"state": state, "sites": platform.Sites, "dataDir": a.DataDir, "version": "0.3.2", "platform": runtime.GOOS})
+		reply(w, map[string]any{"state": state, "sites": platform.ForSettings(state.Settings), "dataDir": a.DataDir, "version": "0.4.0", "platform": runtime.GOOS})
 		return
 	case "GET /api/profile":
 		e = a.profileDetails(w, r)
@@ -171,7 +176,7 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		problems := []string{}
 		for _, raw := range req.URLs {
 			raw = strings.TrimSpace(raw)
-			site, err := model.ParseURL(raw)
+			site, err := state.Settings.ResolveSite(raw)
 			if err != nil {
 				problems = append(problems, err.Error())
 				continue
@@ -337,7 +342,12 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		if a.OpenURL != nil {
-			e = a.OpenURL(platform.Get(req.Site).URL)
+			state, err := a.Manager.Snapshot()
+			if err != nil {
+				e = err
+			} else {
+				e = a.OpenURL(platform.GetForSettings(req.Site, state.Settings).URL)
+			}
 		}
 	case "POST /api/window/hide":
 		if a.Hide != nil {

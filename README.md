@@ -1,4 +1,4 @@
-# dl-manager 0.3.2 — Windows et Linux x64
+# dl-manager 0.4.0 — Windows et Linux x64
 
 Gestionnaire personnel de téléchargements utilisant gallery-dl et yt-dlp.
 Le paquet inclut les moteurs : aucune installation de Python, Go, FFmpeg ou Deno
@@ -38,7 +38,7 @@ Le TAR.GZ Linux inclut aussi les cinq moteurs. Sur Debian/Ubuntu avec interface 
 ```sh
 sudo apt install libgtk-4-1 libwebkitgtk-6.0-4 libsecret-tools
 # Décompresser dans un dossier appartenant à votre utilisateur :
-tar -xzf dl-manager-0.3.2-linux-x64.tar.gz
+tar -xzf dl-manager-0.4.0-linux-x64.tar.gz
 cd dl-manager
 ./dl-manager
 ```
@@ -94,6 +94,33 @@ reconfigurer les connexions. L'export de cookies original reste à votre charge 
 l'import ne supprime pas ce fichier. **Vérifier le stockage** contrôle le
 déchiffrement local ; seule une tentative de téléchargement vérifie la connexion
 au site. Si le chiffrement échoue, le compte n'est pas enregistré en clair.
+
+### Plusieurs sites personnalisés
+
+Dans **Comptes & sites**, cliquez sur **Ajouter un site**, donnez un nom à la fiche
+et indiquez son domaine seul (par exemple `exemple.org`, sans `https://` ni chemin).
+Les liens de ce domaine et de ses sous-domaines sont reconnus automatiquement.
+Chaque fiche a ses comptes cookies, filtres et dossier, avec le même héritage global
+que les sites intégrés. Créer une fiche n'ajoute pas un extracteur à gallery-dl :
+le moteur doit déjà savoir traiter les liens du site.
+
+Le nom est modifiable dans la fiche. Le domaine reste fixe pour préserver
+l'association des comptes et la reprise des tâches. En classement **Site**, le
+sous-dossier porte ce domaine stable ; en **Site / Créateur**, un sous-dossier
+supplémentaire utilise les métadonnées disponibles. Les sites intégrés gardent
+leurs propres fiches, et **Autres sites** reste le choix automatique pour les
+domaines non configurés.
+
+Exportez uniquement les cookies du domaine configuré : un fichier contenant des
+cookies d'un autre domaine est refusé pour ces fiches. Pour supprimer une fiche,
+retirez d'abord ses comptes et ses tâches, y compris dans l'Historique. Cette
+suppression ne touche pas aux fichiers téléchargés.
+
+Les sauvegardes chiffrées incluent ces fiches, leurs réglages et leurs comptes.
+À l'import, un domaine déjà présent retrouve sa fiche locale ; son nom et ses
+réglages restent inchangés sauf remplacement explicitement coché. Les anciennes
+sauvegardes restent lisibles. Une sauvegarde contenant des sites personnalisés
+nécessite dl-manager 0.4.0 ou supérieur pour être importée.
 
 ## File, filtres et dossiers
 
@@ -209,9 +236,9 @@ https://codeberg.org/mikf/gallery-dl — https://gdl-org.github.io/docs/
 https://github.com/yt-dlp/yt-dlp — https://github.com/yt-dlp/FFmpeg-Builds
 https://github.com/denoland/deno
 
-## Mise à jour depuis 0.1.0 à 0.3.1
+## Mise à jour depuis 0.1.0 à 0.3.2
 
-Quitter l'ancienne application et sauvegarder son dossier `data`. Extraire 0.3.2
+Quitter l'ancienne application et sauvegarder son dossier `data`. Extraire 0.4.0
 puis conserver/copier ce dossier `data` à côté du nouvel exécutable Windows ; les
 comptes DPAPI existants restent lisibles dans la même session Windows. Le paquet
 ne contient aucun `data` et ne remplace pas les téléchargements.

@@ -437,6 +437,18 @@ func (m *Manager) Action(id, action string) error {
 func (m *Manager) SaveSettings(s model.Settings) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	current, err := m.store.Snapshot()
+	if err != nil {
+		return err
+	}
+	if len(current.Settings.CustomSites) != len(s.CustomSites) {
+		return errors.New("Utilisez Ajouter ou Supprimer un site pour modifier les sites personnalisés")
+	}
+	for id, c := range current.Settings.CustomSites {
+		if s.CustomSites[id] != c {
+			return errors.New("Utilisez la fiche du site pour le renommer")
+		}
+	}
 	if e := m.store.SaveSettings(s); e != nil {
 		return e
 	}

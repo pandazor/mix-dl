@@ -1,3 +1,28 @@
+# Vérifications de dl-manager 0.4.0
+
+Validation du 9 novembre 2026, Windows x64.
+
+- Suite Go Windows : **64 tests principaux réussis, aucun ignoré**, avec DPAPI réel et téléchargements gallery-dl sur serveur local.
+- Connexion guidée : processus local de test, sortie fragmentée, paire Tumblr/token DeviantArt, validation des URL HTTPS et redirections, réponse partielle ou trop grande refusée, erreur sans sortie brute, session unique, annulation/fermeture, expiration des résultats non consommés, nouvelle tentative après expiration et lecture unique. L'API protège toutes les actions OAuth ; ni state ni status n'exposent les nouveaux secrets.
+- Chrome réel, profil/base temporaires : bouton OAuth, remplissage puis enregistrement explicite, refus, réponse reçue après fermeture ignorée, annulation par Échap. Seul le retour du fournisseur OAuth est simulé.
+- Sites personnalisés : détection exacte/sous-domaine, suffixes trompeurs, suffixes publics et domaines intégrés refusés, deux sites avec destinations/comptes distincts, renommage, suppression d'une fiche utilisée refusée, cookies d'un autre domaine rejetés et chemins stables.
+- Sauvegardes chiffrées : import v1 conservé ; définitions personnalisées v2, remappage des comptes par domaine, import neuf et fusion, remplacement explicite. Régression reproduite puis corrigée : un site local sans surcharge garde son héritage global à l'import.
+- Chrome : création de deux fiches, nom contenant des chevrons affiché comme texte, dossier global/custom, compte cookies, ajout de tâches sans téléchargement, renommage et rechargement. Capture inspectée à largeur 840 ; aucun message d'erreur JavaScript. Les parcours de destinations, export/import et erreurs des versions précédentes passent toujours.
+- TypeScript compilé ; go vet Windows et Linux (purego) réussis ; exécutables Windows x64 et Linux x64 compilés.
+- Un contrôle lancé en même temps que les deux compilations a rencontré deux délais de démarrage (gallery-dl et processus OAuth de test). La suite complète relancée seule réussit : 64 tests, aucun ignoré. Aucun délai de production n’a été augmenté pour masquer ces échecs.
+- Revue indépendante ciblée des extraits de code : aucun blocage signalé. La lecture directe des fichiers par le réviseur a bloqué ; cette revue ne constitue pas une inspection indépendante complète des sources, tests ou archives.
+- DeviantArt : l'utilisateur confirme le téléchargement avec le refresh-token obtenu manuellement avant 0.4.0. TikTok/ArtStation/Instagram/Rule34 : retours positifs antérieurs.
+
+## Limites 0.4.0
+
+La connexion réelle avec le nouveau bouton doit être essayée par l'utilisateur sur Tumblr et DeviantArt ; aucun compte réel ni token de la conversation n'a servi aux tests. Le quota partagé Tumblr reste applicable. Une seule autorisation à la fois, port local 6414 disponible, cinq minutes maximum. La saisie manuelle reste disponible.
+
+Les tests de navigateur ne remplacent pas le contrôle de la fenêtre Wails et de son ouverture du navigateur natif. La fermeture native Windows reste à confirmer (test WebView2 inconclusif en 0.3.1). Le lancement et le trousseau Linux restent à valider dans une session Linux.
+
+Le domaine des fiches personnalisées est immuable ; pour le changer, créer une autre fiche. Les cookies de domaines parents ou étrangers sont refusés pour ces fiches. Une fiche ne rend pas un site compatible avec gallery-dl. Les sauvegardes avec fiches personnalisées nécessitent la version 0.4.0 ou supérieure ; les anciennes sauvegardes restent importables.
+
+---
+
 # Vérifications de dl-manager 0.3.2
 
 Validation du 9 novembre 2026, Windows x64.

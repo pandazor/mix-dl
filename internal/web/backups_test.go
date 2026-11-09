@@ -189,7 +189,7 @@ func TestBackupValidatesPayloadBeforeWritingAndResetsForeignPaths(t *testing.T) 
 			}
 			switch kind {
 			case "version":
-				doc.Version = 2
+				doc.Version = 999
 			case "traversal":
 				doc.Accounts[0].Profile.ID = "../../escape"
 			case "duplicate":

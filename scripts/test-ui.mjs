@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -76,6 +76,21 @@ try{
  await waitUntil(async()=>oauthCancelled>cancelBeforeLate,'Late authorization not cancelled');assert.equal(await page.locator('#profile-token').inputValue(),'');assert.equal(await page.locator('#profile-secret').inputValue(),'');
  await page.locator('#modal [data-close]').first().click();
  oauthState='waiting';await page.locator('[data-site=deviantart]').click();await page.locator('#oauth-start').click();await page.locator('#oauth-cancel').waitFor();const cancelBeforeEscape=oauthCancelled;await page.keyboard.press('Escape');await waitUntil(async()=>oauthCancelled>cancelBeforeEscape,'Escape did not cancel authorization');
+ // Named sites use the real API, store, vault and job inheritance; no downloads.
+ await page.locator('#custom-site-add').waitFor({timeout:3000});await page.locator('#custom-site-add').click();
+ await page.locator('#custom-name').fill('Inspiration');await page.locator('#custom-domain').fill('ART.EXAMPLE.ORG');await page.locator('#custom-site-form button.primary').click();await page.locator('#site-form').waitFor();
+ let customState=await state();const siteA=Object.keys(customState.settings.customSites).find(id=>customState.settings.customSites[id].domain==='art.example.org');assert.ok(siteA);
+ assert.equal(await page.locator('#site-dest').inputValue(),picked);
+ await page.locator('#site-use-global').uncheck();const customFolder=join(dir,'named-site');await page.locator('#site-dest').fill(customFolder);await page.locator('#site-form button.primary').click();
+ await page.locator('[data-site="'+siteA+'"]').click();const cookie=join(dir,'custom-cookies.txt');await writeFile(cookie,'# Netscape HTTP Cookie File\n.art.example.org\tTRUE\t/\tTRUE\t2147483647\tsession\tSYNTHETIC_COOKIE\n');await page.locator('#profile-cookie').fill(cookie);await page.locator('#profile-form button.primary').click();await page.locator('#modal').waitFor({state:'hidden'});
+ await page.locator('#custom-site-add').click();await page.locator('#custom-name').fill('Archives <photo>');await page.locator('#custom-domain').fill('images.example.net');await page.locator('#custom-site-form button.primary').click();await page.locator('#site-form').waitFor();await page.locator('#modal [data-close]').first().click();
+ customState=await state();const siteB=Object.keys(customState.settings.customSites).find(id=>customState.settings.customSites[id].domain==='images.example.net');assert.ok(siteB);assert.notEqual(siteA,siteB);assert.equal(await page.locator('[data-site="'+siteB+'"] h3').innerText(),'Archives <photo>');
+ await page.locator('[data-site="'+siteA+'"]').click();await page.locator('#custom-name').fill('Inspiration renommée');await page.locator('#custom-site-form button.primary').click();await waitUntil(async()=>(await state()).settings.customSites[siteA].name==='Inspiration renommée','Custom rename not persisted');await page.locator('#modal [data-close]').first().click();
+ const customAdded=await post('jobs',{urls:['https://art.example.org/artist','https://images.example.net/artist']});assert.equal(customAdded.body.added,2);
+ customState=await state();assert.equal(customState.jobs.find(j=>j.site===siteA).destination,customFolder);assert.equal(customState.jobs.find(j=>j.site===siteB).destination,picked);assert.ok(customState.settings.sites[siteA].profileId);assert.equal(customState.profiles.find(p=>p.id===customState.settings.sites[siteA].profileId).site,siteA);
+ await page.reload();await page.locator('[data-page=accounts]').click();await page.locator('[data-site="'+siteA+'"]').click();assert.equal(await page.locator('#custom-name').inputValue(),'Inspiration renommée');await page.locator('#custom-site-delete').click();await waitUntil(async()=>/compte|tâche/i.test(await page.locator('#toast').innerText()),'Used site was removed');assert.ok((await state()).settings.customSites[siteA]);await page.locator('#modal [data-close]').first().click();
+ await page.screenshot({path:join(dir,'custom-sites.png'),fullPage:true});
+ for(const j of customState.jobs)await post('job',{id:j.id,action:'delete'});
  // Exercise the public state contract without accessing Tumblr or real credentials.
  const fixture=await (await fetch(url+'/api/state')).json();
  const failed={id:'test-tumblr-quota',url:'https://www.tumblr.com/test-only',site:'tumblr',destination:picked,destinationMode:'inherit',layout:'site_creator',filename:'site',profileId:'',profileMode:'none',status:'failed',added:'2026-11-09T14:17:11Z',started:'2026-11-09T14:17:11Z',ended:'2026-11-09T14:17:13Z',error:'[tumblr][error] Aborting - Rate limit will reset at 19:06:46',exitCode:4,bytes:0,files:0,skipped:0,current:'',order:0};

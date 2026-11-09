@@ -1,5 +1,10 @@
 package platform
 
+import (
+	"dl-manager/internal/model"
+	"sort"
+)
+
 type Site struct {
 	ID      string   `json:"id"`
 	Name    string   `json:"name"`
@@ -29,4 +34,23 @@ func Get(id string) Site {
 		}
 	}
 	return Sites[len(Sites)-1]
+}
+
+func ForSettings(s model.Settings) []Site {
+	out := append([]Site{}, Sites...)
+	ids := make([]string, 0, len(s.CustomSites))
+	for id := range s.CustomSites {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	for _, id := range ids {
+		out = append(out, GetForSettings(id, s))
+	}
+	return out
+}
+func GetForSettings(id string, s model.Settings) Site {
+	if c, ok := s.CustomSites[id]; ok {
+		return Site{ID: id, Name: c.Name, Methods: []string{"cookies"}, Guide: "Site personnalisé : importez uniquement les cookies de " + c.Domain + ". Les liens de ce domaine et de ses sous-domaines utilisent ces réglages. La compatibilité dépend de gallery-dl.", URL: "https://" + c.Domain, Creator: "{username|user[name]|artist|author|unknown}"}
+	}
+	return Get(id)
 }

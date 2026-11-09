@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"dl-manager/internal/model"
 	"errors"
 	"regexp"
 	"strings"
@@ -32,6 +33,29 @@ func ValidateCookies(text, site string) error {
 	}
 	if count == 0 {
 		return errors.New("Aucun cookie du site choisi dans ce fichier Netscape")
+	}
+	return nil
+}
+
+func ValidateCookiesForDomain(text, domain string) error {
+	if e := ValidateCookies(text, "generic"); e != nil {
+		return e
+	}
+	count := 0
+	for _, line := range strings.Split(text, "\n") {
+		line = strings.TrimPrefix(strings.TrimSpace(line), "#HttpOnly_")
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.Split(line, "\t")
+		host := strings.ToLower(strings.TrimPrefix(parts[0], "."))
+		if !model.DomainMatches(host, domain) {
+			return errors.New("Le fichier contient des cookies d'un autre domaine ; exportez uniquement ceux du site choisi")
+		}
+		count++
+	}
+	if count == 0 {
+		return errors.New("Aucun cookie du domaine choisi")
 	}
 	return nil
 }

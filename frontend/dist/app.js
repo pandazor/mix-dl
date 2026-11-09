@@ -84,13 +84,16 @@ function updateJobs() {
         $('#queue-notice').innerHTML = s.lastError ? `<div class="notice">${esc(s.lastError)}</div>` : limit && s.usedBytes >= limit ? '<div class="notice">Limite de volume atteinte. Réinitialisez le compteur ou augmentez la limite, puis cliquez sur Reprendre.</div>' : !s.settings.destination ? '<div class="notice">Choisissez votre dossier global dans Paramètres, ou une destination dans les options de téléchargement.</div>' : '';
     }
 }
-function renderAccounts() { $('#main').innerHTML = header('Comptes & sites', 'Réglez une fois la destination et la connexion de chaque plateforme.', '<button id="backup-import">Importer une sauvegarde</button><button id="backup-export">Exporter les sites et comptes</button>') + `<div class="site-grid">${data.sites.map(s => { const n = data.state.profiles.filter(p => p.site === s.id).length; return `<button class="site-card" data-site="${s.id}"><span class="site-icon">${esc(s.name.slice(0, 2))}</span><span><h3>${esc(s.name)}</h3><p>${n ? n + ' compte(s) enregistré(s)' : 'Public ou à configurer'}</p></span></button>`; }).join('')}</div><section class="panel section-gap"><h2>Vos comptes</h2>${data.state.profiles.length ? data.state.profiles.map(p => `<div class="profile-row"><div><h3>${esc(p.name)}</h3><p class="muted smalltext">${esc(siteName(p.site))} · ${esc(p.method)} · ${p.state === 'authentication_required' ? 'Connexion à renouveler' : 'Configuré'}</p></div><div class="row"><button class="small" data-profile-check="${p.id}">Vérifier le stockage</button><button class="small" data-profile-edit="${p.id}">Modifier</button><button class="small danger" data-profile-delete="${p.id}">Supprimer</button></div></div>`).join('') : '<p class="muted section-gap">Aucun compte enregistré. Les sites publics restent accessibles sans compte.</p>'}<p class="footer-note">Les connexions se font dans votre navigateur. Les secrets importés sont protégés par le coffre de votre session. Pour changer de PC ou d’OS, utilisez une sauvegarde chiffrée avec une phrase secrète.</p></section>`; }
+function renderAccounts() { $('#main').innerHTML = header('Comptes & sites', 'Réglez une fois la destination et la connexion de chaque plateforme.', '<button id="custom-site-add" class="primary">＋ Ajouter un site</button><button id="backup-import">Importer une sauvegarde</button><button id="backup-export">Exporter les sites et comptes</button>') + `<div class="site-grid">${data.sites.map(s => { const n = data.state.profiles.filter(p => p.site === s.id).length; return `<button class="site-card" data-site="${s.id}"><span class="site-icon">${esc(s.name.slice(0, 2))}</span><span><h3>${esc(s.name)}</h3>${data.state.settings.customSites?.[s.id] ? `<p class="site-domain">${esc(data.state.settings.customSites[s.id].domain)}</p>` : ''}<p>${n ? n + ' compte(s) enregistré(s)' : 'Public ou à configurer'}</p></span></button>`; }).join('')}</div><section class="panel section-gap"><h2>Vos comptes</h2>${data.state.profiles.length ? data.state.profiles.map(p => `<div class="profile-row"><div><h3>${esc(p.name)}</h3><p class="muted smalltext">${esc(siteName(p.site))} · ${esc(p.method)} · ${p.state === 'authentication_required' ? 'Connexion à renouveler' : 'Configuré'}</p></div><div class="row"><button class="small" data-profile-check="${p.id}">Vérifier le stockage</button><button class="small" data-profile-edit="${p.id}">Modifier</button><button class="small danger" data-profile-delete="${p.id}">Supprimer</button></div></div>`).join('') : '<p class="muted section-gap">Aucun compte enregistré. Les sites publics restent accessibles sans compte.</p>'}<p class="footer-note">Les connexions se font dans votre navigateur. Les secrets importés sont protégés par le coffre de votre session. Pour changer de PC ou d’OS, utilisez une sauvegarde chiffrée avec une phrase secrète.</p></section>`; }
+function customSiteForm(id = '', name = '', domain = '') { return `<form id="custom-site-form" data-site-id="${esc(id)}"><div class="form-grid"><label>Nom du site<input id="custom-name" required maxlength="100" value="${esc(name)}" placeholder="Mes illustrations"></label><label>Domaine<input id="custom-domain" required maxlength="253" value="${esc(domain)}" placeholder="exemple.org" ${id ? 'readonly' : ''}></label></div><p class="footer-note">${id ? 'Le domaine reste fixe pour préserver les comptes et les reprises.' : 'Indiquez le domaine seul, sans https:// ni chemin. Ses sous-domaines seront reconnus. Le site doit être compatible avec gallery-dl.'}</p><div class="settings-footer">${id ? '<button type="button" class="danger" id="custom-site-delete" data-site-id="' + esc(id) + '">Supprimer le site</button>' : ''}<button class="primary">${id ? 'Enregistrer le nom' : 'Créer le site'}</button></div></form>`; }
+function openCustomSite() { showModal(`<div class="modal-head"><h2>Ajouter un site personnalisé</h2><button data-close>×</button></div>${customSiteForm()}`); }
 async function openSite(id, profile) {
     const site = data.sites.find(x => x.id === id);
     const s = data.state.settings.sites[id] || { destination: '', layout: '', filename: '', profileId: '' };
     const profiles = data.state.profiles.filter(p => p.site === id);
     const selected = profile?.id || s.profileId || profiles[0]?.id || '';
     showModal(`<div class="modal-head"><h2>${esc(site.name)}</h2><button data-close>×</button></div>
+ ${data.state.settings.customSites?.[id] ? customSiteForm(id, data.state.settings.customSites[id].name, data.state.settings.customSites[id].domain) : ''}
  <form id="site-form" data-site-id="${id}"><h3>Destination et classement</h3><div class="form-grid">
  <label class="full check"><input id="site-use-global" type="checkbox" ${!s.destination ? 'checked' : ''}>Utiliser le dossier global</label><label class="full">Dossier de téléchargement${pathInput('site-dest', s.destination || '', 'Choisir un dossier propre à ce site')}</label><p class="full footer-note">Dossier global actuel : <code>${esc(data.state.settings.destination)}</code>. Cochez pour suivre ses changements ; décochez pour choisir un dossier propre au site. Les tâches déjà commencées gardent leur dossier.</p>
  <label>Organisation<select id="site-layout">${opts([['', 'Hériter du réglage global'], ...layouts], s.layout || '')}</select></label>
@@ -278,6 +281,18 @@ document.addEventListener('click', e => {
     if (!b)
         return;
     run(async () => {
+        if (b.id === 'custom-site-add') {
+            openCustomSite();
+            return;
+        }
+        if (b.id === 'custom-site-delete') {
+            await api('custom-site/delete', { id: b.dataset.siteId });
+            await load(true);
+            closeModal();
+            renderAccounts();
+            toast('Site supprimé.');
+            return;
+        }
         if (b.id === 'oauth-start') {
             await generateOAuth();
             return;
@@ -462,6 +477,14 @@ document.addEventListener('submit', e => {
         if (button)
             button.disabled = true;
         try {
+            if (form.id === 'custom-site-form') {
+                const r = await api('custom-site', { id: form.dataset.siteId || '', name: val('custom-name'), domain: val('custom-domain') });
+                await load(true);
+                renderAccounts();
+                await openSite(r.id);
+                toast('Site enregistré.');
+                return;
+            }
             if (form.id === 'backup-form') {
                 await submitBackup(form);
                 return;
